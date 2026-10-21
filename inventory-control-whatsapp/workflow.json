@@ -1,0 +1,1553 @@
+{
+  "name": "Inventory control via WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b75cbb8d-e991-459a-8372-51a7abeab87e",
+              "name": "=phone",
+              "value": "={{ $('WPP_EVENT').item.json.body.data.key.remoteJid.replace(/\\D/g, '') }}",
+              "type": "string"
+            },
+            {
+              "id": "82cb8f8a-9a7e-41ca-b80c-64b70ee00919",
+              "name": "name",
+              "value": "={{ $json.body.data.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "635d8640-9b2d-4360-baf9-639f0368c107",
+              "name": "message_type",
+              "value": "={{ $json.body.data.messageType }}",
+              "type": "string"
+            },
+            {
+              "id": "2b77e196-6e2f-48a2-937d-2cecd612fd3b",
+              "name": "text",
+              "value": "={{ $('WPP_EVENT').item.json.body.data.message.conversation ||  \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "5fd34383-9e3b-45d7-ae2f-bf94fc88a20e",
+              "name": "caption_pdf_text",
+              "value": "={{ $json.body.data.message.documentMessage.caption  || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "570139ee-8810-423c-b4fe-79f6f4f6b16e",
+              "name": "caption_image_text",
+              "value": "= {{ $('WPP_EVENT').item.json.body.data.message.imageMessage.caption || \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "d0f3548e-d0ef-4a5e-bc53-c915266f31ad",
+              "name": "message_timestamp",
+              "value": "={{ $json.body.data.messageTimestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "4436c829-0230-4960-855c-0e9fc962c618",
+              "name": "from_me",
+              "value": "={{ $json.body.data.key.fromMe }}",
+              "type": "boolean"
+            },
+            {
+              "id": "ea0b131d-0f1e-4e97-a7c2-8eff7d0d7815",
+              "name": "message_id",
+              "value": "={{ $json.body.data.key.id }}",
+              "type": "string"
+            },
+            {
+              "id": "abbea78d-f616-4e38-bbc7-6b4195e2dfaa",
+              "name": "tipo",
+              "value": "={{ $json.body.data.message.documentMessage.mimetype }}",
+              "type": "string"
+            },
+            {
+              "id": "1a21a35d-c79c-4d99-8b6a-dae5fca9c6ee",
+              "name": "file_name",
+              "value": "={{ $json.body.data.message.documentMessage.fileName }}",
+              "type": "string"
+            },
+            {
+              "id": "2eb40786-73c6-4002-bcb0-13c7be64fc0f",
+              "name": "destination",
+              "value": "={{ $json.body.destination }}",
+              "type": "string"
+            },
+            {
+              "id": "bc03d841-2e0d-44af-8206-65d4eef24103",
+              "name": "sender",
+              "value": "={{ $json.body.sender.replace(/\\D/g, '') }}",
+              "type": "string"
+            },
+            {
+              "id": "8640d69e-5518-4242-bf24-51982baff125",
+              "name": "execution_mode",
+              "value": "={{ $json.executionMode }}",
+              "type": "string"
+            },
+            {
+              "id": "29ada118-22e6-4851-92ca-85a653d16893",
+              "name": "data",
+              "value": "={{ DateTime.now()\n.setZone('America/Sao_Paulo')     .toFormat('dd/LL/yyyy') }}",
+              "type": "string"
+            },
+            {
+              "id": "fab30696-e252-48cc-82db-aec1eb4685ab",
+              "name": "time",
+              "value": "={{ DateTime.now().setZone('America/Sao_Paulo').toFormat('HH:mm:ss') }}",
+              "type": "string"
+            },
+            {
+              "id": "591c4340-5dc1-477a-9867-c1fac71b1be6",
+              "name": "=n8n_execution",
+              "value": "={{ $execution.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1280,
+        464
+      ],
+      "id": "151b242a-a10f-4b26-8d10-79ef7e5d70d4",
+      "name": "payload_webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "={{ $json.system_context }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.ai_state_prompt }}"
+        }
+      },
+      "id": "c99d2fa6-09ed-4614-b19d-f47273b67d25",
+      "name": "Entende_Contexto",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        2896,
+        448
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ \n  $('payload_webhook').item.json.from_me === false &&\n  String($('WPP_EVENT').item.json.body?.data?.key?.remoteJid || '').endsWith('@s.whatsapp.net')\n}}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    },
+                    "id": "81b47266-2fb6-4228-b389-d4749ba16386"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "126684a5-cdfc-43b8-be24-95af4a8e6f20",
+      "name": "Remetente",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        384,
+        448
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4dce08e7-d2a4-40e0-8818-199f461857cc",
+                    "leftValue": "={{ $('payload_webhook').item.json.message_type }}",
+                    "rightValue": "audioMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('payload_webhook').item.json.message_type }}",
+                    "rightValue": "conversation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "4a952e07-7480-413e-8003-20ce5ba8e2e6"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a1674924-1725-451d-ab09-7169c9af08a4",
+                    "leftValue": "={{ $('payload_webhook').item.json.message_type }}",
+                    "rightValue": "=imageMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c93d342b-2433-4e38-9efc-486a812968af",
+                    "leftValue": "={{ $('payload_webhook').item.json.message_type }}",
+                    "rightValue": "documentMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        400
+      ],
+      "id": "67c20cf1-4cac-412a-835c-fa1a570793c0",
+      "name": "Message type"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "=image/png",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6de07dd4-b451-4bfc-9170-14030b18ed24"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e568b32e-922b-4811-8a03-e8ef42e7ad94",
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "image/jpeg",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "85f68d8b-1cd7-4cd3-be6a-2a6d605cce19",
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "97936309-af98-42c7-9d0d-cf284b7bb0e5",
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "video/mp4",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        672
+      ],
+      "id": "d6a24f58-f6e6-4145-ab7e-b50de4251153",
+      "name": "Document type"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "=body.data.message.base64",
+        "binaryPropertyName": "=audio",
+        "options": {
+          "fileName": "audio.ogg"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1216,
+        304
+      ],
+      "id": "81370834-9c0f-42e8-a0e8-ef922c73c8d1",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "=body.data.message.base64",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        560
+      ],
+      "id": "1bc3c3d3-1e4a-4bdc-b65f-93d1fd840ded",
+      "name": "Convert to File1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://pdf-converter:8000/convert-all",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1456,
+        800
+      ],
+      "id": "d1209b9c-8243-4066-80e6-16b91fef3c01",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d714a1b6-3742-4080-a11d-dac87bad9777",
+              "name": "body.data.message.base64",
+              "value": "={{ $('WPP_EVENT').item.json.body.data.message.base64 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        304
+      ],
+      "id": "6f9a9058-d35d-4e5a-b083-5867c73a7a14",
+      "name": "audio input"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d714a1b6-3742-4080-a11d-dac87bad9777",
+              "name": "body.data.message.base64",
+              "value": "={{ $('WPP_EVENT').item.json.body.data.message.base64 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        560
+      ],
+      "id": "74c6cc37-a871-45a7-bf28-440a8ace93eb",
+      "name": "image input"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "=body.data.message.base64",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        800
+      ],
+      "id": "2b3eb7cc-74f5-4e6a-8026-ceacdb9990d6",
+      "name": "Convert to File2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d714a1b6-3742-4080-a11d-dac87bad9777",
+              "name": "body.data.message.base64",
+              "value": "={{ $('WPP_EVENT').item.json.body.data.message.base64 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        800
+      ],
+      "id": "73adf763-67f6-4c67-9c28-2a38ce42fc87",
+      "name": "PDF input1"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "audio",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        1424,
+        304
+      ],
+      "id": "35204c05-ccd4-429e-a05c-4e38d782084d",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "text": "Analise a imagem ou documento médico enviado.\n\nIdentifique o tipo de conteúdo, como:\n- pedido de exames;\n- resultado de exames;\n- laudo ou relatório médico;\n- receita médica;\n- encaminhamento;\n- atestado;\n- lista ou foto de medicamentos;\n- prescrição de suplementos;\n- documento de alta ou orientação médica;\n- outro documento relacionado à saúde.\n\nTranscreva fielmente todas as informações legíveis, preservando nomes, datas, exames, resultados, valores, unidades, referências, medicamentos, doses e posologias.\n\nSe for uma fotografia clínica, descreva apenas o que estiver visível, sem diagnosticar.\n\nUse [ilegível] ou [incerto] quando não conseguir confirmar uma informação.\n\nNão invente, complete ou interprete clinicamente. Responda em português.",
+        "inputType": "base64",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        2016,
+        576
+      ],
+      "id": "9391c4e0-3ddb-4b96-ad12-42b3dfa3dded",
+      "name": "Analyze image",
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "outputPrefix": "data"
+      },
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        1648,
+        800
+      ],
+      "id": "ce86e0c5-28ba-45c3-b260-7e93aa8ae45c",
+      "name": "Compression"
+    },
+    {
+      "parameters": {
+        "jsCode": "const binaries = $input.first().binary || {};\n\nreturn Object.entries(binaries).map(([key, file], index) => {\n  return {\n    json: {\n      page_number: index + 1,\n      file_name: file.fileName || key,\n      mime_type: file.mimeType,\n    },\n    binary: {\n      data: file,\n    },\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        800
+      ],
+      "id": "83073f67-51e1-407d-ba29-8df09ddd91d0",
+      "name": "Trata_PDF"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.6-sol",
+          "mode": "list",
+          "cachedResultName": "gpt-5.6-sol"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2912,
+        672
+      ],
+      "id": "d4702da6-c01b-41d6-8820-b8b3597c6464",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ae8f263f-0d92-4583-8afa-f1535c429875",
+              "name": "ai_state_prompt",
+              "value": "=VITA — INTERPRETADOR DE ESTADO\n\nInterprete a mensagem e o contexto e retorne somente o JSON do parser. Não responda ao usuário, não invente dados e não crie campos extras.\n\nPrioridade: mensagem atual > histórico ligado ao turno > estado, perfil e agendamentos. Considere texto, áudio transcrito e conteúdo extraído de imagem/PDF. Em incerteza, use o valor mais neutro permitido ou deixe vazio.\n\n## 1. ACTION_NOW\n\n* `false`: somente saudação ou início sem pedido, pergunta, decisão ou contexto processável;\n* `true`: pedido, pergunta, dúvida, dado cadastral, confirmação, negação, decisão ou continuidade suficiente;\n* em dúvida: `true`.\n\n## 2. INTERAÇÃO E NOME\n\n* copie `tipo_interacao` do contexto;\n* `nome_utilizavel=true` somente para nome pessoal adequado; use `false` para vazio, número, empresa ou nome duvidoso;\n* em `nome_completo`, use apenas nome completo explícito e seguro na mensagem, histórico ou perfil;\n* não complete sobrenomes nem infira gênero;\n* em `agendar`, se o nome completo estiver ausente, inclua `nome_completo` em `dados_faltantes`.\n\n## 3. SEGURANÇA\n\n* spam → `is_spam=true`;\n* pedido direto de humano → `pedido_explicito`;\n* pedido explícito de diagnóstico, laudo ou interpretação de exames, ajuste de dose ou medicação, ou relato com sinais de urgência ou emergência (ex.: dor no peito, falta de ar, desmaio, sangramento, febre alta, confusão mental) → `alerta_clinico`;\n* NÃO é alerta clínico: queixas comuns e não urgentes contadas como motivo da procura (cansaço, sono ruim, ganho ou perda de peso, baixa energia, estresse, dores leves, sintomas crônicos estáveis), mesmo com frases como \"quero entender o que está acontecendo\" ou \"o que pode ser\". Nesses casos `precisa_humano=false`, objetivo `mapeamento_programa` e agent `SERVIÇOS`, que acolhe a queixa e conduz ao Mapeamento sem diagnosticar;\n* crise ou risco emocional → `alerta_emocional`;\n* contrato, cobrança ou reclamação institucional → `assunto_institucional`;\n* demanda válida sem fluxo automatizado → `fora_do_fluxo_automatizado`;\n* sem necessidade humana: `precisa_humano=false` e motivo=\"\";\n* alerta clínico ou emocional prevalece sobre as demais regras.\n\nPrescrição externa: medicamentos, doses, exames e procedimentos apenas transcritos não geram alerta clínico. Sem pedido de humano, alerta clínico ou emocional: `precisa_humano=false`, motivo=\"\" e agent=`PRESCRIÇÃO EXTERNA`.\n\n## 4. OBJETIVO\n\n* prescrição de outro profissional para análise, realização ou orçamento → `prescricao_externa`;\n* IV personalizado → `iv_drip`;\n* aplicações ou vitaminas genéricas → `injetaveis`;\n* plano corporativo ou rede de academias → `wellhub`;\n* Método ou Programa Mapeamento → `mapeamento_programa`;\n* consulta médica avulsa → `mapeamento_programa`;\n* atendimento, palestra ou curso de Terapia Neural → objetivo correspondente;\n* meditação ou prática contemplativa → `meditacao`;\n* claramente fora dos serviços → `fora_do_escopo`;\n* sem evidência → `nao_identificado`.\n\nSobreposição:\n\n`prescricao_externa > mapeamento_programa > terapia_neural_* > iv_drip > injetaveis > wellhub > meditacao`\n## 5. SOLICITAÇÃO\n\n* explicação → `pedir_informacao`;\n* preço → `consultar_valor`;\n* datas ou horários → `consultar_disponibilidade`;\n* criar → `agendar`;\n* alterar → `reagendar`;\n* cancelar → `cancelar`;\n* documento como pedido principal → `enviar_documento`;\n* humano ou bloqueio → `precisa_de_humano`;\n* sem pedido → `nenhuma`.\n\nDocumento acompanhado de outro pedido: classifique pelo outro pedido. Use o histórico somente em continuidade clara.\n\n## 6. AGENDA\n\nHá consulta de agenda quando existir disponibilidade, data, horário, agendamento, reagendamento ou cancelamento.\n\nSem consulta, use:\n\n`origem_consulta=\"\"`, `autoriza_consulta=false`, `modelo_consulta=\"\"`, `datas_especificas=[]`, `hora_inicio=\"\"`, `hora_fim=\"\"`, `periodo_dia=\"\"`, `servico=\"\"`, `profissional=\"\"`, `local=\"\"`, `dados_faltantes=[]`.\n\nOrigem:\n\n* pedido direto → `pedido_usuario`;\n* oportunidade inferida → `estrategica`.\n\nDatas:\n\n* converta somente datas seguras para `YYYY-MM-DD`;\n* quando o usuário informar uma data específica, use `modelo_consulta=\"datas_especificas\"` e preencha `datas_especificas`;\n* quando o usuário quiser consultar disponibilidade ou agendar, mas ainda não tiver definido uma data específica, permita a busca dos próximos dias disponíveis usando `modelo_consulta=\"datas_especificas\"` e `datas_especificas=[]`;\n* se houver referência de data ambígua, não invente a data;\n* use `agora` para resolver referências relativas.\n\nPara a busca automática do Primeiro encontro do Programa Mapeamento:\n\n- use `hora_inicio = \"09:00\"`;\n- use `hora_fim = \"17:10\"`;\n- use `local = \"online\"`;\n- use `autoriza_consulta = true`;\n- `17:10` é apenas o limite operacional para permitir atendimento iniciado às 16:00, com 60 minutos de duração e 10 minutos posteriores;\n- nunca apresente 17:10 como horário disponível ao usuário.\n\n\n\nHorários:\n\n* sem período → 08:00–18:00;\n* manhã → 08:00–12:00 e `manha`;\n* tarde → 12:00–18:00 e `tarde`;\n* noite → preserve, use `noite` e não autorize;\n* horário único → início informado e fim uma hora depois;\n* intervalo A–B → preserve o intervalo;\n* antes de H → 08:00–H;\n* depois de H → H–18:00.\n\nInício e fim representam a janela consultada, não o horário definitivo do evento.\n\nLocal:\n\n\n* para novos atendimentos e consultas de disponibilidade, use `local=\"unidade_centro\"`;\n* não solicite unidade ao usuário;\n* o Primeiro encontro do Programa Mapeamento é exceção: permanece `online`, realizado com a `Enfermeira`;\n* em reagendamento ou cancelamento de evento existente, preserve o local registrado no agendamento;\n* não altere automaticamente o local de um agendamento existente.\n`autoriza_consulta=true` quando houver:\n\n\n1. pedido atual de disponibilidade ou agendamento; ou\n2. continuidade clara de agenda em que o usuário:\n   - escolha um horário previamente apresentado;\n   - confirme um horário;\n   - forneça um dado faltante após escolher o horário;\n   - solicite alteração de data ou horário;\n   - confirme que deseja prosseguir com o agendamento.\n\nAlém disso, devem estar disponíveis:\n\n- data válida; ou busca dos próximos dias disponíveis;\n- hora_inicio e hora_fim em `HH:mm`;\n- local = `unidade_centro`; ou `online` exclusivamente para o Primeiro encontro do Programa Mapeamento;\n- período diferente de noite.\n\nQuando o usuário fornecer apenas um dado faltante, como nome completo, recupere do histórico ativo o serviço, a data, o horário e o local já confirmados.\n\nNesse caso, use `autoriza_consulta=true` para revalidar o horário antes da confirmação ou criação do evento.\n\nPara consultar disponibilidade, profissional e nome não são obrigatórios.\n\nO serviço não deve ser solicitado novamente quando já estiver definido pelo objetivo da conversa.\n\nQuando `objetivo_usuario = \"mapeamento_programa\"` e o usuário quiser iniciar, prosseguir, consultar disponibilidade ou agendar o processo:\n\n- considere `servico = \"Primeiro encontro do Programa Mapeamento\"`;\n- considere `profissional = \"Enfermeira\"`;\n- considere `local = \"online\"`;\n- não solicite local, modalidade ou profissional;\n- não informe o nome da enfermeira;\n- não confunda esse primeiro encontro com o segundo momento realizado com a Dra. Ana.\n\nQuando o histórico ou um agendamento existente indicar claramente que o primeiro encontro já aconteceu e que o usuário está tratando do segundo momento, preserve o serviço, o profissional e a etapa identificados no contexto.\n\nQuando o usuário demonstrar interesse em agendar o Programa Mapeamento, a primeira ação deve ser consultar automaticamente os próximos horários do primeiro encontro.\n\nNesse caso:\n\n- use `servico=\"Primeiro encontro do Programa Mapeamento\"`;\n- use `profissional=\"Enfermeira\"`;\n- use `local=\"online\"`;\n- use `modelo_consulta=\"datas_especificas\"`;\n- use `datas_especificas=[]`;\n- use `hora_inicio=\"09:00\"` e `hora_fim=\"17:10\"`;\n- use `autoriza_consulta=true`;\n- use `dados_faltantes=[]`;\n- não solicite nome completo, data ou horário antes de apresentar as disponibilidades.\n\nEssa regra prevalece sobre as regras gerais de coleta de dados.\n\n\n\n\n\nDados faltantes:\n\n* agendar: exigir nome_completo, servico, data, horario e local; quando indisponíveis no contexto\n* profissional somente quando solicitado e ausente;\n* reagendar ou cancelar: exigir `identificacao_agendamento` se nenhum evento estiver identificado;\n* nunca pedir `calendar_event_id` ao usuário.\n\nAgendamentos do contexto servem apenas para identificação. Um único evento pode ser usado quando a referência for clara. Com vários candidatos, não escolha sem dados suficientes. Não invente IDs nem transforme um evento existente em intenção de alterar ou cancelar.\n\nExceção de continuidade: quando o usuário pedir outro horário no mesmo dia, mantenha a data e o local ativos e consulte das `09:00` às `18:00`.\n\nUse `tipo_solicitacao = \"consultar_disponibilidade\"` e `autoriza_consulta = true` quando data e local estiverem disponíveis.\n\nEssa regra prevalece para pedidos como “outro horário”, “horário próximo”, “mais cedo” ou “mais tarde”.\n\n\nQuando o usuário recusar os horários apresentados:\n\n1. Se ele também informar uma nova data, dia ou período:\n   - preserve serviço, profissional e modalidade;\n   - interprete a nova preferência;\n   - autorize uma nova consulta de disponibilidade.\n\n2. Se ele apenas recusar, sem informar nova preferência:\n   - preserve `servico = \"Primeiro encontro do Programa Mapeamento\"`;\n   - preserve `profissional = \"Enfermeira\"`;\n   - preserve `local = \"online\"`;\n   - use `autoriza_consulta = false`;\n   - não repita automaticamente a consulta anterior;\n   - encaminhe para o AGENDAMENTO perguntar qual data ou período seria melhor.\n\nNão solicite novamente serviço, profissional ou modalidade.\n\n## 7. ROTEAMENTO\n\nAplique em ordem:\n\n1. spam ou `precisa_humano=true` → `FALLBACK`;\n2. prescricao_externa sem aprovação registrada → `PRESCRIÇÃO EXTERNA`;\n3. prescricao_externa aprovada + agendar → `AGENDAMENTO`;\n4. disponibilidade, agendar, reagendar, cancelar ou continuidade clara de agenda → `AGENDAMENTO`;\n5. consulta_medica, mapeamento_programa, terapia_neural_atendimento, terapia_neural_curso, injetaveis ou meditacao → `SERVIÇOS`;\n6. wellhub, iv_drip ou terapia_neural_palestra → `OUTROS SERVIÇOS`;\n7. demais casos → `FALLBACK`.\n\nAgenda prevalece sobre dúvida informativa presente na mesma mensagem.\n\nContextos necessários:\n\n* serviço principal → `serviços_principais`;\n* funcionamento, endereço, unidade ou informação institucional → `dados_empresa`;\n* wellhub → `Benefício corporativo`;\n* iv_drip → `IV_DRIP`;\n* palestra de Terapia Neural → `palestra_terapia_neural`.\n\nInclua somente os contextos necessários, sem repetição.\n\n## 8. RESUMO E SAÍDA\n\n`resumo_estado_atual`: factual, com até 500 caracteres, contendo objetivo, solicitação, dados relevantes e ausência importante. Não escreva estratégia.\n\nValide datas, horários, arrays, ausências, autorização, agent e contextos. Retorne somente o JSON do parser.\n",
+              "type": "string"
+            },
+            {
+              "id": "792ba708-1830-4eb3-b6f4-40e7848759cd",
+              "name": "system_context",
+              "value": "=## 📌 CONTEXTO DA INTERAÇÃO\n\nUse os dados abaixo para interpretar a mensagem atual e preencher o output.\n---\n\n## 👤 PERFIL DISPONÍVEL\n\nnome_disponivel:\n{{ $items('payload_webhook')[0].json.name || \"\" }}\n\n\nUse `nome_disponivel` apenas para avaliar `nome_utilizavel`. Use tags e resumos somente como apoio contextual.\n---\n\n## 🟢 MENSAGEM ATUAL\n\ntipo_mensagem:\n{{ $('prepara_contexto').item.json.mensagem_atual.tipo || \"\" }}\n\nconteudo_normalizado:\n{{ $('prepara_contexto').item.json.mensagem_atual.texto || \"\" }}\n---\n\n## 🔁 SINAIS DE CONTINUIDADE\n\npossui_historico:\n{{ $('prepara_contexto').item.json.estado_conversa.possui_historico }}\n\ndeve_cumprimentar:\n{{ $('prepara_contexto').item.json.estado_conversa.deve_cumprimentar }}\n\nClassifique `tipo_interacao`:\n\nClassifique `tipo_interacao`:\n\n* `possui_historico=false` e `deve_cumprimentar=true`: `primeiro_contato`;\n* `possui_historico=true` e `deve_cumprimentar=false`: `continuidade`;\n* `possui_historico=true` e `deve_cumprimentar=true`: `nova_interacao`.\n* `possui_historico=false` e `deve_cumprimentar=false`: `primeiro_contato`.\n\nUse esses sinais apenas para classificar a interação. Não escreva resposta ao usuário.\n\n---\n\n## 📅 DATA E HORA ATUAIS\n\ndata:\n{{ $items('payload_webhook')[0].json.data }}\n\nhora:\n{{ $items('payload_webhook')[0].json.time }}\n\nUse a data e a hora atuais para resolver referências temporais. \nNão invente datas quando houver ambiguidade.\n\n\n---\n\n## 📚 HISTÓRICO RECENTE\n\n{{ $('prepara_contexto').item.json.memoria.contexto || \"\" }}\n\nUse o histórico para resolver referências, \ncompreender mensagens curtas e recuperar serviço, \nprofissional, \nlocal, \ndata ou horário mencionados recentemente.\n\nNão use o histórico para contradizer a mensagem atual, \ntransformar interesse antigo em intenção presente \nou assumir dados sem ligação clara.\n\n\n---\n\n## 📅 AGENDAMENTOS LOCALIZADOS\n\n{{ JSON.stringify(\n  ($('payload_bd').first().json.agendamentos || [])\n    .filter(item => item.calendar_event_id && !/cancel/i.test(String(item.status || ''))).reverse(),\n  null,\n  2\n) }}\n\nUse estes registros somente para identificar agendamentos existentes.\n\nRegras:\n\n- registro com `calendar_event_id` representa um agendamento localizado pelo sistema;\n- se houver somente um agendamento ativo e a mensagem atual se referir claramente a ele, considere `identificacao_agendamento` disponível;\n- se houver mais de um agendamento possível, não escolha sozinho;\n- use serviço, data, horário ou unidade para identificar qual deles o usuário deseja alterar ou cancelar;\n- não invente `calendar_event_id`;\n- não transforme a existência de um agendamento em intenção de alterar ou cancelar;\n- se a lista estiver vazia, considere que nenhum agendamento foi localizado.\n\n---\n\n",
+              "type": "string"
+            },
+            {
+              "id": "79f81b46-4e70-459b-888d-9703b6f9f6f6",
+              "name": "serviços_principais",
+              "value": "=# SERVIÇOS PRINCIPAIS\n\n## 1. MAPEAMENTO PROGRAMA\n\nO **Programa Mapeamento** é a forma de primeiro atendimento na Clínica Exemplo.\n\nNão é uma consulta médica convencional ou uma avaliação pontual de um único sintoma. É uma avaliação personalizada e aprofundada da situação de saúde do paciente, com o objetivo de compreender a pessoa de forma integrada e identificar como diferentes fatores podem estar relacionados ao seu momento atual de saúde.\n\n### OBJETIVO\n\nCompreender o estado atual de saúde do paciente, identificar prioridades e, a partir dessa análise, estabelecer um plano terapêutico individualizado.\n\n### O QUE PODE SER AVALIADO\n\nConforme a necessidade de cada paciente, podem ser considerados:\n\n* sintomas e queixas atuais;\n* histórico de saúde;\n* aspectos físicos e emocionais;\n* hábitos e estilo de vida;\n* aspectos metabólicos, bioquímicos e hormonais;\n* exames laboratoriais;\n* tratamentos e abordagens anteriores;\n* composição corporal, quando aplicável;\n* relação entre diferentes fatores envolvidos na saúde do paciente.\n\n### COMO FUNCIONA\n\nO Programa Mapeamento acontece em **dois momentos**.\n\n### Primeiro momento — etapa online com a enfermeira\n\nAntes da avaliação com a Dra. Ana, o paciente passa por uma etapa inicial online com a enfermeira.\n\nNessa etapa são organizadas as informações necessárias para preparar o Mapeamento e são solicitados os exames laboratoriais pertinentes.\n\nO objetivo é permitir que a avaliação com a Dra. Ana aconteça com as informações e exames necessários para uma análise mais completa.\n\n### Segundo momento — Mapeamento com a Dra. Ana\n\nNo segundo momento acontece a avaliação com a Dra. Ana, com duração de aproximadamente **60 minutos**.\n\nSão analisados os sintomas, o histórico de saúde, os exames e demais informações relevantes, buscando compreender de forma integrada o momento atual do paciente.\n\nA partir dessa avaliação são identificadas as principais prioridades e estabelecido um **plano terapêutico personalizado**.\n\n### POSICIONAMENTO\n\nO Programa Mapeamento:\n\n* não é apenas uma consulta pontual;\n* não é uma avaliação superficial baseada apenas em sintomas;\n* não é um protocolo pronto ou padronizado;\n* não representa prescrição automática de tratamentos.\n\nA proposta é primeiro compreender de forma ampla e individualizada a situação do paciente para então definir os próximos passos.\n\nOutros profissionais, intervenções ou formas de acompanhamento podem ser indicados posteriormente, conforme as necessidades identificadas.\n\nIsso não significa que psicólogo, nutricionista ou outros profissionais estejam automaticamente incluídos no Mapeamento.\n\n### DURAÇÃO\n\nA avaliação com a Dra. Ana tem duração de aproximadamente **60 minutos**.\n\nO processo também inclui previamente a etapa online com a enfermeira.\n\n### AGENDAMENTO DO PRIMEIRO ENCONTRO\n\nO primeiro encontro:\n\n- acontece online;\n- é realizado com a enfermeira;\n- está disponível às segundas, terças e quintas;\n- possui horários de início entre 09:00 e 16:00;\n- exige antecedência mínima de três horas comerciais;\n- deve ser apresentado somente como “primeiro encontro online com a enfermeira”;\n- o nome da enfermeira não deve ser informado ao usuário.\n\n\n\n### VALOR E PAGAMENTO\n\nValor atual do Programa Mapeamento: **R$ XXX**.\n\nO pagamento acontece no primeiro encontro.\n\nA forma de pagamento apresentada inicialmente deve ser PIX.\n\nCartão de crédito em até duas vezes sem juros somente deve ser mencionado quando o usuário perguntar ou demonstrar interesse direto em cartão, crédito ou débito.\n\nNão apresente espontaneamente todas as formas de pagamento.\n\n\n\n\n\n\n## 2. TERAPIA NEURAL\n\nA **Terapia Neural** é uma das abordagens terapêuticas utilizadas pela Dra. Ana dentro do cuidado integrativo.\n\nÉ realizada de forma individualizada, considerando a história e as necessidades de cada paciente.\n\nPode fazer parte do plano terapêutico quando houver indicação após avaliação.\n\nNão deve ser apresentada como tratamento padronizado, solução garantida ou tratamento indicado automaticamente para determinada condição.\n\nQuando o usuário perguntar se a Terapia Neural é adequada especificamente para o caso dele, não determine indicação pelo WhatsApp. Explique que essa definição depende de avaliação profissional.\n\n## 3. PROTOCOLOS PERSONALIZADOS\n\nOs **Protocolos Personalizados** são estratégias de cuidado construídas de acordo com as necessidades e prioridades identificadas na avaliação de cada paciente.\n\nNão existe um protocolo único aplicado da mesma forma para todas as pessoas.\n\nA composição do cuidado depende do que for identificado na avaliação e pode envolver diferentes intervenções ou formas de acompanhamento disponíveis na clínica, quando houver indicação.\n\nO objetivo é organizar um plano coerente com:\n\n* o momento atual de saúde;\n* as prioridades identificadas;\n* os objetivos do paciente;\n* a resposta ao acompanhamento ao longo do tempo.\n\nNem todos os serviços da clínica fazem parte de todos os protocolos.\n\nA VITA não deve inventar quais tratamentos, substâncias, procedimentos, doses, frequência ou duração farão parte do protocolo de uma pessoa.\n\nEssas definições são individualizadas e realizadas pela equipe responsável após avaliação.\n\n## REGRA DE USO DESTA BASE\n\nTodo o conteúdo acima é **base de conhecimento para a VITA**.\n\nNão deve ser reproduzido integralmente ao usuário.\n\nA VITA deve utilizar apenas as informações necessárias para responder à pergunta ou ao momento atual da conversa.\n\nAs informações devem ser apresentadas progressivamente, conforme o usuário demonstra interesse ou faz novas perguntas.\n\nNão transformar esta base em um texto fixo de apresentação dos serviços.\n",
+              "type": "string"
+            },
+            {
+              "id": "e23f8169-f7d0-4c87-9a76-23317ae45ab4",
+              "name": "dados_empresa",
+              "value": "=CLÍNICA DE LONGEVIDADE\n\nCLÍNICA DE LONGEVIDADE\n\nFUNCIONAMENTO: Segunda a sexta-feira: 9h às 17h\n\nLOCAL DE ATENDIMENTO PRESENCIAL:\n\nUnidade Centro\nAv. Exemplo, 100 – Sala 10 — Unidade Centro, Rio de Janeiro, RJ, 00000-000, Brasil\n\nEXCEÇÃO DE MODALIDADE:\n\nO Primeiro encontro do Programa Mapeamento acontece online com a enfermeira.\nEssa modalidade online é específica dessa etapa e não deve ser apresentada como opção geral de atendimento.\n\n\nCONTEXTO INSTITUCIONAL – CLÍNICA DE LONGEVIDADE\\n\\nA Clínica Exemplo é conduzida pela médica Ana Exemplo Araujo, com foco em medicina integrativa, nutrologia, terapia neural e saúde integrativa.\n\nESPECIALIDADE CENTRAL:\nExemplo sustentável com qualidade de vida e propósito.\n\nABORDAGEM:\nA clínica trabalha com escuta ativa profunda, leitura integrada de exames e construção de estratégias individualizadas, sem protocolo engessado.\\n\\nIntegra ciência, consciência e estilo de vida, incluindo:\n- Terapia Neural\n- Detox de metais pesados\n- Nutrição injetável\n- Estratégias de autorregulação\n- Meditação e estilo de vida\n\n\nOBJETIVO DO ATENDIMENTO:\nRestaurar energia, clareza e autonomia.\nReduzir inflamação.\nAjudar na transição e redução responsável de medicamentos quando possível.\nPromover equilíbrio metabólico e emocional\"",
+              "type": "string"
+            },
+            {
+              "id": "b5180883-8855-4280-a1b1-b45f7233dac3",
+              "name": "WellHub_Benefício corporativo",
+              "value": "STATUS SOBRE WELLHUB/GYMPASS  A clínica aceita Benefício corporativo exclusivamente para as atividades regulares descritas abaixo.  ATIVIDADES CONTEMPLADAS  1. Yoga Tibetano - Dia: quarta-feira - Horário: 17h - Descrição: prática que integra corpo e mente, combinando movimento, respiração, atenção e presença. Não se limita ao alongamento.  2. Meditação “Para Simplesmente Ser” - Dia: terça-feira - Horário: 16h30 - Descrição: prática de meditação voltada à desaceleração, presença e leveza, com abordagem simples e sem técnicas complicadas. - modalidade disponível: online  LIMITES DA INFORMAÇÃO  - A aceitação do Benefício corporativo está confirmada somente para as atividades descritas acima. - Não há informação cadastrada sobre planos elegíveis. - Não há informação cadastrada sobre check-in. - Não há informação cadastrada sobre reservas. - Não há informação cadastrada sobre cancelamentos.",
+              "type": "string"
+            },
+            {
+              "id": "e21b6aac-75f9-4eeb-bdd6-6f7b18f5a7e7",
+              "name": "IV_DRIP",
+              "value": "IV DRIP:\n\nVITA — Instrução: Atendimento em Inglês / Home Visit Requests\nTrigger: Patient writes in English requesting home service (IV drip, vitamins, or acute medical care such as dehydration, infection, diarrhea, fever, or general unwellness).\nRules:\nAlways respond in English.\nDo not attempt to schedule or confirm an appointment.\nFollow the flow below.\n\nFLOW:\nStep 1 — Inform the service and price:\n\"Hello! We offer home visit IV therapy and acute medical care in Rio de Janeiro.\n A home IV drip session is R$ XXX This includes a medical evaluation and the infusion administered by our team at your location.\"\nStep 2 — Check interest:\n\"Would you like to proceed with scheduling? If so, could you please share your address so we can confirm availability in your area?\"\nStep 3 — If patient confirms interest and provides address:\n\"Thank you! We've received your information and our team will be in touch with you shortly to confirm the details.\"\nStep 4 — If patient hesitates or asks questions:\n Answer general questions about the service (what's included, how long it takes, etc.) but do not negotiate the price and do not confirm a time slot. Always close with:\n\"Whenever you're ready, just send us your address and we'll get back to you as soon as possible.\"\n",
+              "type": "string"
+            },
+            {
+              "id": "20d1bafc-9aeb-48c3-aca8-eda7b0e7a424",
+              "name": "secutity_rules",
+              "value": "=🛡️ BLOCO DE SEGURANÇA CLÍNICA — VITA ORQUESTRADORA\nPRINCÍPIO FUNDAMENTAL\n\nA Vita conduz a jornada estratégica.\nEla não exerce função médica.\n\nEla organiza decisão.\nEla não diagnostica.\n\n🔴 PROIBIÇÕES ABSOLUTAS\n\nA Vita nunca deve:\n\n– Emitir diagnóstico\n– Prescrever medicamentos\n– Sugerir ajuste de dose\n– Interpretar exames de forma conclusiva\n– Substituir consulta médica\n– Prometer cura\n– Garantir resultado\n\nSe o usuário solicitar algo clínico conclusivo,\na proxima_acao deve ser:\ninvestigar_e_redirecionar_com_limite_profissional\n\n🔴 DETECÇÃO DE ALERTA MÉDICO\n\nSe o usuário mencionar sinais compatíveis com possível urgência ou emergência:\n\nExemplos de padrão (contexto, não listar ao usuário):\n– Dor súbita intensa\n– Falta de ar\n– Perda de consciência\n– Sintomas neurológicos agudos\n– Sangramento intenso\n– Febre alta persistente\n– Piora abrupta\n– Ideação suicida\n– Crise emocional grave\n\nAção estratégica obrigatória:\n\nInterromper condução comercial\n\nIgnorar etapa_conducao atual\n\nproxima_acao = encaminhar_humano_imediato\n\nnivel_profundidade_resposta = baixo\n\nnumero_textos = 1\n\nestrategia_construcao = orientacao_imediata_sem_comercial\n\nSem:\n\n– Projeção\n– Método\n– Valor\n– Agenda\n– Micro-direcionamento\n\n🔴 DOR EMOCIONAL GRAVE\n\nSe houver:\n\n– Desesperança extrema\n– Ideação autolesiva\n– Colapso emocional\n– Declaração de incapacidade de continuar\n\nAção estratégica:\n\nValidar emocionalmente\n\nEncaminhar humano\n\nInformar que notificou colaborador\n\nproxima_acao = validar_e_encaminhar\n\nSem condução comercial.\nSem aprofundamento técnico.\nSem estratégia de conversão.\n\n🔴 PRIORIDADE ABSOLUTA\n\nA segurança sempre sobrepõe:\n\n– maturidade_decisoria\n– probabilidade_conversao\n– etapa_conducao\n– qualquer lógica comercial\n\nSe houver risco → segurança assume controle.\n\n🔴 REGRA FINAL\n\nQuando segurança é ativada:\n\nA Vita deixa de ser orquestradora comercial\ne passa a ser ponte humana.\n\nDepois do encaminhamento, o fluxo comercial só pode ser retomado por humano.",
+              "type": "string"
+            },
+            {
+              "id": "126b9dc1-7def-4514-9149-4b223716152d",
+              "name": "IV_DRIP",
+              "value": "IV_DRIP  VITA — Instrução: Atendimento em Inglês / Home Visit Requests Trigger: Patient writes in English requesting home service (IV drip, vitamins, or acute medical care such as dehydration, infection, diarrhea, fever, or general unwellness). Rules: Always respond in English. Do not attempt to schedule or confirm an appointment. Follow the flow below.  FLOW: Step 1 — Inform the service and price: \"Hello! We offer home visit IV therapy and acute medical care in Rio de Janeiro.  A home IV drip session is R$ XXX This includes a medical evaluation and the infusion administered by our team at your location.\" Step 2 — Check interest: \"Would you like to proceed with scheduling? If so, could you please share your address so we can confirm availability in your area?\" Step 3 — If patient confirms interest and provides address: \"Thank you! We've received your information and our team will be in touch with you shortly to confirm the details.\" Step 4 — If patient hesitates or asks questions:  Answer general questions about the service (what's included, how long it takes, etc.) but do not negotiate the price and do not confirm a time slot. Always close with: \"Whenever you're ready, just send us your address and we'll get back to you as soon as possible.\"",
+              "type": "string"
+            },
+            {
+              "id": "c721a559-4581-40a6-a6b9-3f40350b87a5",
+              "name": "palestra_terapia_neural",
+              "value": "Palestra de Terapia Neural: quando o usuário pedir o link da palestra, vídeo ou material introdutório, enviar: https://www.youtube.com/watch?v=EXAMPLE",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2688,
+        448
+      ],
+      "id": "23352daf-3bf4-4c60-8908-3fc4ec9756b1",
+      "name": "Context Orchestration1"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"properties\": {\n\"interacao\": {\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"tipo_interacao\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"primeiro_contato\",\n        \"nova_interacao\",\n        \"continuidade\"\n      ]\n    },\n    \"nome_utilizavel\": {\n      \"type\": \"boolean\"\n    },\n    \"nome_completo\": {\n      \"type\": \"string\",\n      \"maxLength\": 150\n    }\n  },\n  \"required\": [\n    \"tipo_interacao\",\n    \"nome_utilizavel\",\n    \"nome_completo\"\n  ]\n},\n    \"leitura_usuario\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"objetivo_usuario\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"nao_identificado\",\n            \"iv_drip\",\n            \"wellhub\",\n            \"mapeamento_programa\",\n            \"consulta_medica\",\n            \"terapia_neural_atendimento\",\n            \"terapia_neural_palestra\",\n            \"terapia_neural_curso\",\n            \"injetaveis\",\n            \"meditacao\",\n            \"fora_do_escopo\",\n            \"prescricao_externa\"\n          ]\n        },\n        \"sinais_operacionais\": {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"properties\": {\n            \"is_spam\": {\n              \"type\": \"boolean\"\n            },\n            \"precisa_humano\": {\n              \"type\": \"boolean\"\n            },\n            \"motivo_precisa_humano\": {\n              \"type\": \"string\",\n              \"enum\": [\n                \"pedido_explicito\",\n                \"alerta_clinico\",\n                \"alerta_emocional\",\n                \"assunto_institucional\",\n                \"fora_do_fluxo_automatizado\",\n                \"\"\n              ]\n            }\n          },\n          \"required\": [\n            \"is_spam\",\n            \"precisa_humano\",\n            \"motivo_precisa_humano\"\n          ]\n        },\n        \"tipo_solicitacao\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"pedir_informacao\",\n            \"consultar_valor\",\n            \"consultar_disponibilidade\",\n            \"agendar\",\n            \"reagendar\",\n            \"cancelar\",\n            \"enviar_documento\",\n            \"precisa_de_humano\",\n            \"nenhuma\",\n            \"\"\n          ]\n        }\n      },\n      \"required\": [\n        \"objetivo_usuario\",\n        \"sinais_operacionais\",\n        \"tipo_solicitacao\"\n      ]\n    },\n    \"consulta_agenda\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"origem_consulta\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"pedido_usuario\",\n            \"estrategica\",\n            \"\"\n          ]\n        },\n        \"autoriza_consulta\": {\n          \"type\": \"boolean\"\n        },\n        \"modelo_consulta\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"datas_especificas\",\n            \"\"\n          ]\n        },\n        \"datas_especificas\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\"\n          }\n        },\n        \"hora_inicio\": {\n          \"type\": \"string\"\n        },\n        \"hora_fim\": {\n          \"type\": \"string\"\n        },\n        \"periodo_dia\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"manha\",\n            \"tarde\",\n            \"noite\",\n            \"\"\n          ]\n        },\n        \"servico\": {\n          \"type\": \"string\"\n        },\n        \"profissional\": {\n          \"type\": \"string\"\n        },\n        \"local\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"unidade_centro\",\n            \"unidade_sul\",\n            \"unidade_norte\",\n            \"online\",\n            \"\"\n          ]\n        },\n        \"dados_faltantes\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"string\",\n           \"enum\": [\n  \"nome_completo\",\n  \"servico\",\n  \"data\",\n  \"horario\",\n  \"profissional\",\n  \"local\",\n  \"identificacao_agendamento\"\n]\n          }\n        }\n      },\n      \"required\": [\n        \"origem_consulta\",\n        \"autoriza_consulta\",\n        \"modelo_consulta\",\n        \"datas_especificas\",\n        \"hora_inicio\",\n        \"hora_fim\",\n        \"periodo_dia\",\n        \"servico\",\n        \"profissional\",\n        \"local\",\n        \"dados_faltantes\"\n      ]\n    },\n   \"resumo_estado_atual\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 500\n    },\n    \"action_now\": {\n      \"type\": \"boolean\"\n    },\n    \"agent\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"AGENDAMENTO\",\n        \"SERVIÇOS\",\n        \"OUTROS SERVIÇOS\",\n        \"PRESCRIÇÃO EXTERNA\",\n        \"FALLBACK\"\n      ]\n    },\n    \"contextos_necessarios\": {\n      \"type\": \"array\",\n      \"uniqueItems\": true,\n      \"minItems\": 0,\n      \"maxItems\": 5,\n      \"items\": {\n        \"type\": \"string\",\n        \"enum\": [\n          \"serviços_principais\",\n          \"dados_empresa\",\n          \"Benefício corporativo\",\n          \"IV_DRIP\",\n          \"palestra_terapia_neural\"\n        ]\n      }\n    }\n  },\n\"required\": [\n    \"interacao\",\n    \"leitura_usuario\",\n    \"consulta_agenda\",\n    \"resumo_estado_atual\",\n    \"action_now\",\n    \"agent\",\n    \"contextos_necessarios\"\n  ]\n}"
+      },
+      "id": "4ace2d76-ce7c-4829-97d0-e2cc0eb7ae36",
+      "name": "context_output_parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        3040,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('payload_webhook').first().json;\n\n\n// =====================================================\n// CONTEÚDO EXTRAÍDO DA MENSAGEM ATUAL\n// =====================================================\n\nlet leituraImagem = '';\n\ntry {\n  leituraImagem = $('Analyze image')\n    .all()\n    .map(item => item.json?.[0]?.content?.[0]?.text || '')\n    .filter(Boolean)\n    .join('\\n\\n');\n} catch {\n  leituraImagem = '';\n}\n\n\n// =====================================================\n// TRANSCRIÇÃO DE ÁUDIO\n// =====================================================\n\nlet textoAudio = '';\n\ntry {\n  textoAudio =\n    $('Transcribe a recording').first().json.text || '';\n} catch {\n  textoAudio = '';\n}\n\n\n// =====================================================\n// TEXTO DE APOIO\n// =====================================================\n\nconst textoApoio =\n  payload.text ||\n  payload.caption_image_text ||\n  payload.caption_pdf_text ||\n  '';\n\n\n// =====================================================\n// MENSAGEM ATUAL NORMALIZADA\n// =====================================================\n\nconst textoAtual =\n  leituraImagem\n    ? [textoApoio, leituraImagem]\n        .filter(Boolean)\n        .join('\\n\\n')\n    : (\n        payload.text ||\n        textoAudio ||\n        payload.caption_pdf_text ||\n        payload.caption_image_text ||\n        ''\n      );\n\n\n// =====================================================\n// CONSULTA DO BUFFER\n// =====================================================\n\nconst payloadBd = $('payload_bd').first().json;\n\nconst itensBuffer = Array.isArray(payloadBd.buffer)\n  ? payloadBd.buffer\n  : [];\n\nconst mensagensBuffer = itensBuffer\n  .filter(item =>\n    String(item.status_buffer ?? '')\n      .trim()\n      .toLowerCase() === 'processing'\n  )\n  .map(item => ({\n    row_number: Number(item.row_number),\n    message_in: String(item.message_in ?? '').trim()\n  }))\n  .filter(item =>\n    Number.isFinite(item.row_number) &&\n    item.message_in !== ''\n  )\n  .sort((a, b) =>\n    a.row_number - b.row_number\n  );\n\n// =====================================================\n// CONSOLIDAÇÃO DA MENSAGEM\n// =====================================================\n\nconst text =\n  mensagensBuffer.length > 0\n    ? [\n        ...mensagensBuffer.map(item => item.message_in),\n        textoAtual\n      ]\n        .filter(Boolean)\n        .join('\\n\\n')\n    : textoAtual;\n\n\n// =====================================================\n// OUTPUT\n// =====================================================\n\n\nreturn {\n  json: {\n    text\n  },\n  binary: $binary\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        448
+      ],
+      "id": "8b216d11-a809-443e-81a8-382858d6006d",
+      "name": "Trata_mensagem"
+    },
+    {
+      "parameters": {
+        "jsCode": "const CONFIG = {\n  prescricao_externa: {\n    saida: 'prescricao_externa',\n    unico: true,\n  },\n  agendamentos: {\n    saida: 'agendamentos',\n    unico: false,\n  },\n  user_atual_state: {\n    saida: 'estado',\n    unico: true,\n  },\n  user_profile: {\n    saida: 'perfil',\n    unico: true,\n  },\n  events: {\n    saida: 'eventos',\n    unico: false,\n  },\n  buffer: {\n    saida: 'buffer',\n    unico: false,\n  },\n  vita_controle: {\n  saida: 'controle_vita',\n  unico: true,\n},\n};\n\nconst somenteNumeros = valor =>\n  String(valor ?? '').replace(/\\D/g, '');\n\nconst nomeAba = range =>\n  String(range ?? '')\n    .split('!')[0]\n    .replace(/^'|'$/g, '')\n    .trim();\n\nfunction transformarLinhas(values = []) {\n  const [cabecalho = [], ...linhas] = values;\n\n  const colunas = cabecalho.map(coluna =>\n    String(coluna ?? '').trim()\n  );\n\n  return linhas.map((linha, indice) => {\n    const registro = {\n      row_number: indice + 2,\n    };\n\n    colunas.forEach((coluna, colunaIndice) => {\n      // Ignora cabeçalhos vazios\n      if (!coluna) return;\n\n      registro[coluna] =\n        linha[colunaIndice] ?? '';\n    });\n\n    return registro;\n  });\n}\n\n// ---------------------------------------------\n// Entradas\n// ---------------------------------------------\n\nconst userId = somenteNumeros(\n  $('payload_webhook').first().json.phone\n);\n\nconst valueRanges =\n  $input.first().json.valueRanges;\n\nif (!userId) {\n  throw new Error(\n    'payload_webhook não forneceu um telefone válido.'\n  );\n}\n\nif (!Array.isArray(valueRanges)) {\n  throw new Error(\n    'A consulta não retornou valueRanges.'\n  );\n}\n\n// Cria todas as saídas com valores neutros\nconst resultado = Object.fromEntries(\n  Object.values(CONFIG).map(config => [\n    config.saida,\n    config.unico ? {} : [],\n  ])\n);\n\nconst abasRecebidas = new Set();\n\n// ---------------------------------------------\n// Processamento genérico de todas as abas\n// ---------------------------------------------\n\nfor (const bloco of valueRanges) {\n  const aba = nomeAba(bloco.range);\n  const config = CONFIG[aba];\n\n  // Ignora abas que não fazem parte deste payload\n  if (!config) continue;\n\n  abasRecebidas.add(aba);\n\n  const registros = transformarLinhas(\n    bloco.values\n  ).filter(registro =>\n    somenteNumeros(registro.user_id) === userId\n  );\n\n  resultado[config.saida] = config.unico\n    ? registros[0] ?? {}\n    : registros;\n}\n\n// ---------------------------------------------\n// Validação\n// ---------------------------------------------\n\nconst abasAusentes = Object.keys(CONFIG).filter(\n  aba => !abasRecebidas.has(aba)\n);\n\nif (abasAusentes.length) {\n  throw new Error(\n    `Abas ausentes no batchGet: ${abasAusentes.join(', ')}`\n  );\n}\n\n// ---------------------------------------------\n// Output\n// ---------------------------------------------\n\nreturn [\n  {\n    json: {\n      user_id: userId,\n      ...resultado,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        464
+      ],
+      "id": "c0773db6-c1ad-4274-8d48-3bc7b0607fb2",
+      "name": "payload_bd"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select r->>'spreadsheetId' as \"spreadsheetId\", r->'valueRanges' as \"valueRanges\" from cdl.gs_batch_get(array['prescricao_externa!A:Z', 'agendamentos!A:Z', '''user_atual_state ''!A:Z', 'user_profile!A:Z', 'events!A:Z', 'buffer!A:Z', 'vita_controle!A:Z']) as r;",
+        "options": {}
+      },
+      "id": "d8ba2a98-1b1b-4cd5-b9e1-633fb638ec5c",
+      "name": "consulta_bd",
+      "position": [
+        -1104,
+        464
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const LIMITE_HISTORICO = 10;\nconst JANELA_INTERACAO_HORAS = 12;\n\n// =====================================================\n// PAYLOAD TRATADO\n// =====================================================\n\nconst payload = $(\"payload_webhook\").first().json;\n\n// Texto atual normalizado\nconst texto_mensagem =\n  $('Trata_mensagem').first().json.text || \"\";\n\n// Data/hora atual vinda do payload\nconst data_atual_texto = payload.data || \"\";\nconst hora_atual_texto = payload.time || \"\";\nconst data_hora_atual_texto = `${data_atual_texto} ${hora_atual_texto}`.trim();\n\n\n// =====================================================\n// FUNÇÃO SIMPLES PARA DATA BR\n// Formato esperado: dd/mm/yyyy HH:mm:ss\n// =====================================================\n\nfunction converterDataHoraBR(valor) {\n  if (!valor || typeof valor !== \"string\") return null;\n\n  const [data, hora = \"00:00:00\"] = valor.trim().split(\" \");\n\n  const [dia, mes, ano] = data.split(\"/\").map(Number);\n  const [HH = 0, MM = 0, SS = 0] = hora.split(\":\").map(Number);\n\n  if (!dia || !mes || !ano) return null;\n\n  const dataConvertida = new Date(ano, mes - 1, dia, HH, MM, SS);\n\n  return Number.isNaN(dataConvertida.getTime()) ? null : dataConvertida;\n}\n\n\n// =====================================================\n// HISTÓRICO\n// =====================================================\n\nlet itens_historico = [];\n\ntry {\n  itens_historico = $('payload_bd').first().json.eventos;\n} catch {\n  itens_historico = [];\n}\n\nconst eventos_memoria = itens_historico\n  .map(item => ({\n    data_hora: item.ts,\n    mensagem_usuario: item.message_in,\n    resposta_vita: item.agent_reply\n  }))\n  .slice(-LIMITE_HISTORICO);\n\n\n// =====================================================\n// MEMÓRIA EM TEXTO LEGÍVEL PARA O AGENT\n// =====================================================\n\nconst contexto_memoria = eventos_memoria\n  .map(evento => {\n    const linhas = [];\n\n    if (evento.data_hora) {\n      linhas.push(`Data: ${evento.data_hora}`);\n    }\n\n    if (evento.mensagem_usuario) {\n      linhas.push(`Usuário: ${evento.mensagem_usuario}`);\n    }\n\n    if (evento.resposta_vita) {\n      linhas.push(`Vita: ${evento.resposta_vita}`);\n    }\n\n    return linhas.join(\"\\n\");\n  })\n  .filter(Boolean)\n  .join(\"\\n\\n\");\n\n\n// =====================================================\n// ESTADO DA CONVERSA\n// =====================================================\n\nconst ultimo_evento = eventos_memoria.length\n  ? eventos_memoria[eventos_memoria.length - 1]\n  : null;\n\nconst ultima_data_historico = ultimo_evento?.data_hora || null;\n\nconst data_hora_atual = converterDataHoraBR(data_hora_atual_texto);\nconst data_hora_ultima_interacao = converterDataHoraBR(ultima_data_historico);\n\nconst possui_historico = Boolean(ultima_data_historico);\n\nconst horas_desde_ultima_interacao =\n  data_hora_atual && data_hora_ultima_interacao\n    ? Number(\n        (\n          (data_hora_atual - data_hora_ultima_interacao) /\n          (1000 * 60 * 60)\n        ).toFixed(2)\n      )\n    : null;\n\nconst estado_interacao =\n  possui_historico &&\n  horas_desde_ultima_interacao !== null &&\n  horas_desde_ultima_interacao < JANELA_INTERACAO_HORAS\n    ? \"interacao_em_curso\"\n    : \"nova_interacao\";\n\nconst deve_cumprimentar = estado_interacao === \"nova_interacao\";\n\n\n// =====================================================\n// OUTPUT\n// =====================================================\n\nreturn [\n  {\n    json: {\n      mensagem_atual: {\n        texto: texto_mensagem,\n        tipo: payload.message_type || null,\n        id: payload.message_id || null,\n        enviada_por_mim: payload.from_me ?? null,\n        nome: payload.name || null,\n        data: payload.data || null,\n        hora: payload.time || null,\n        timestamp: payload.message_timestamp || null\n      },\n\n      memoria: {\n        contexto: contexto_memoria,\n        ultima_data_historico,\n        limite_historico: LIMITE_HISTORICO\n      },\n\n      estado_conversa: {\n        possui_historico,\n        horas_desde_ultima_interacao,\n        estado_interacao,\n        deve_cumprimentar\n      }\n    }\n  }\n];"
+      },
+      "id": "53937e45-ec0b-4d3a-ac0c-f1a5660b1882",
+      "name": "prepara_contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2496,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "13d00868-d19f-456d-a3a7-496805eacf6f",
+              "leftValue": "={{ ($json.buffer || []).some(item => item.status_buffer === 'processing') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -336,
+        448
+      ],
+      "id": "456f6345-33dc-4b98-b170-edd03519d2e3",
+      "name": "busca_processing"
+    },
+    {
+      "parameters": {
+        "jsCode": "const buffer = $json.buffer || [];\n\nreturn buffer\n  .filter(item => item.status_buffer === 'processing')\n  .map(item => ({\n    json: item\n  }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        272
+      ],
+      "id": "92166005-8f28-49e5-b37d-0bb701685dac",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://n8n.example.com/api/v1/executions/{{ $json.n8n_id }}/stop",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        32,
+        272
+      ],
+      "id": "19fc0050-04f6-4b3a-a05e-f4033a39a048",
+      "name": "encerra_processamento_anterior",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "n8nApi": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select r->>'spreadsheetId' as \"spreadsheetId\", r->>'tableRange' as \"tableRange\", r->'updates' as updates from cdl.gs_append($1, $2::jsonb) as r;",
+        "options": {
+          "queryReplacement": "={{ [ \"buffer!A:J\", JSON.stringify({\n    majorDimension: \"ROWS\",\n    values: [[\n      $('payload_webhook').first().json.phone || '',\n      $('payload_webhook').first().json.message_id || '',\n      $('payload_webhook').first().json.n8n_execution || $execution.id,\n      $('payload_webhook').first().json.text || '',\n      '',\n      '',\n      '',\n      '',\n      '',\n      'processing'\n    ]]\n  }) ] }}"
+        }
+      },
+      "id": "53b25b3e-3ab7-4824-b665-13feb68aabaa",
+      "name": "salva_mensagem_atual",
+      "position": [
+        224,
+        464
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "executeOnce": true,
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3141fb87-dd41-4592-b7bd-9275a1d5a1c9",
+              "leftValue": "={{ \n  String($json.perfil?.vita_status || 'on')\n    .trim()\n    .toLowerCase() !== 'off'\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "66bae16c-8d9e-453b-878a-e78bf2c05a9d",
+              "leftValue": "={{ \n  !String($json.controle_vita?.vita_status || '')\n    .trim()\n    .toLowerCase()\n    .includes('programa')\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -736,
+        464
+      ],
+      "id": "913f70d9-033d-4623-9031-a0e217e47d55",
+      "name": "on/off"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "delicias-tropicais",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1664,
+        480
+      ],
+      "id": "9647131a-b860-4187-a211-ecde408b38b0",
+      "name": "WPP_EVENT"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c254a93f-a2d4-4b4f-b522-5f2cd6b6fbb3",
+              "leftValue": "={{ $json.body?.event === 'messages.upsert'\n  && $json.body?.data?.key?.fromMe === false\n  && String($json.body?.data?.key?.remoteJid || '').endsWith('@s.whatsapp.net') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2a9e8768-abf3-440b-991b-ebfdea9924d3",
+      "name": "FILTRA_EVENTO",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1488,
+        480
+      ],
+      "notes": "So segue mensagem individual recebida de paciente (ignora grupos, mensagens da propria clinica e eventos de conexao) antes de gravar no buffer."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://evolution.example.com/message/sendText/cliente-alimentos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $items('payload_webhook')[0].json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $('Entende_Contexto').item.json.output.resumo_estado_atual }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "56d213c1-a1f5-4fbe-ae17-cdef652c9764",
+      "name": "Agent_response13",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3936,
+        464
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3504,
+        448
+      ],
+      "id": "c1e3ef43-335f-4fba-bafb-1800419ac288",
+      "name": "Loop Over Items2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        4384,
+        464
+      ],
+      "id": "6bef37e6-280e-43e0-9d2d-69ff1dc26a50"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4160,
+        464
+      ],
+      "id": "aac330eb-70d9-4a09-a2b1-ad1d9bcbaef5",
+      "name": "Wait3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e57b42d1-ca8f-4e3f-bbc1-c299af37b2f2",
+              "name": "mensagem",
+              "value": "={{ $json.output.resumo_estado_atual }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "09b84962-f815-4d73-a48a-14f917a76a27",
+      "name": "Edit Fields4",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3728,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $('Edit Fields5').first().json;\nconst output = item.output;\n\n// normaliza asteriscos duplicados\nfunction limparTexto(texto) {\n  return String(texto || \"\")\n    .replace(/\\*+\\*/g, \"*\")\n    .trim();\n}\n\n// quebra texto grande em blocos por linha em branco\nfunction quebrarTexto(texto) {\n  return limparTexto(texto)\n    .split(\"\\n\\n\")\n    .map(t => t.trim())\n    .filter(t => t !== \"\");\n}\n\n// CASO 1: veio como objeto com campo mensagens (array) — formato atual dos especialistas\nif (output && typeof output === \"object\" && Array.isArray(output.mensagens)) {\n  return output.mensagens\n    .map((msg, index) => {\n      const texto = limparTexto(msg?.texto);\n      if (!texto) return null;\n      return {\n        json: {\n          numero: msg?.numero || index + 1,\n          texto\n        }\n      };\n    })\n    .filter(Boolean);\n}\n\n// CASO 2: já veio como array de mensagens (formato legado, ex.: VITA RESPONDE)\nif (Array.isArray(output)) {\n  return output\n    .map((msg, index) => {\n      const texto = limparTexto(msg?.texto || msg);\n      if (!texto) return null;\n      return {\n        json: {\n          numero: msg?.numero || index + 1,\n          texto\n        }\n      };\n    })\n    .filter(Boolean);\n}\n\n// CASO 3: veio como string direta\nif (typeof output === \"string\") {\n  return quebrarTexto(output).map((parte, index) => ({\n    json: {\n      numero: index + 1,\n      texto: parte\n    }\n  }));\n}\n\n// CASO 4: veio como objeto com campo texto\nif (output && typeof output === \"object\" && typeof output.texto === \"string\") {\n  return quebrarTexto(output.texto).map((parte, index) => ({\n    json: {\n      numero: index + 1,\n      texto: parte\n    }\n  }));\n}\n\n// CASO 5: fallback\nreturn [\n  {\n    json: {\n      numero: 1,\n      texto: \"\"\n    }\n  }\n];"
+      },
+      "id": "9ecdbae9-0e13-44cf-8ead-9cbd16a44d7d",
+      "name": "Pre limpa a resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4400,
+        -16
+      ],
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "payload_webhook": {
+      "main": [
+        [
+          {
+            "node": "consulta_bd",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remetente": {
+      "main": [
+        [
+          {
+            "node": "Message type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message type": {
+      "main": [
+        [
+          {
+            "node": "audio input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trata_mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "image input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Document type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document type": {
+      "main": [
+        [
+          {
+            "node": "image input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "image input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PDF input1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Compression",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "audio input": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "image input": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF input1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "Trata_mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "Trata_mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compression": {
+      "main": [
+        [
+          {
+            "node": "Trata_PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trata_PDF": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Entende_Contexto",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Orchestration1": {
+      "main": [
+        [
+          {
+            "node": "Entende_Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "context_output_parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Entende_Contexto",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trata_mensagem": {
+      "main": [
+        [
+          {
+            "node": "prepara_contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "payload_bd": {
+      "main": [
+        [
+          {
+            "node": "on/off",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consulta_bd": {
+      "main": [
+        [
+          {
+            "node": "payload_bd",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepara_contexto": {
+      "main": [
+        [
+          {
+            "node": "Context Orchestration1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "busca_processing": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "salva_mensagem_atual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "encerra_processamento_anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "encerra_processamento_anterior": {
+      "main": [
+        [
+          {
+            "node": "salva_mensagem_atual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "salva_mensagem_atual": {
+      "main": [
+        [
+          {
+            "node": "Remetente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "on/off": {
+      "main": [
+        [
+          {
+            "node": "busca_processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WPP_EVENT": {
+      "main": [
+        [
+          {
+            "node": "FILTRA_EVENTO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FILTRA_EVENTO": {
+      "main": [
+        [
+          {
+            "node": "payload_webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent_response13": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Agent_response13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pre limpa a resposta": {
+      "main": [
+        []
+      ]
+    },
+    "Entende_Contexto": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false,
+  "meta": {
+    "note": "Sanitized export for portfolio: credentials, IDs and personal data replaced with placeholders."
+  }
+}

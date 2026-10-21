@@ -1,0 +1,119 @@
+{
+  "name": "Fiscal XML - diagnostic A (API key)",
+  "nodes": [
+    {
+      "id": "17bfc185-00f3-46a9-8911-ee4738f36273",
+      "name": "Iniciar teste manual SIEG",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "b8da594b-d218-4a2e-968f-5fd0b627c59f",
+      "name": "SIEG - A - BaixarXmls com API Key",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sieg.com/BaixarXmls",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": false,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"XmlType\":1,\"Take\":1,\"Skip\":0,\"Downloadevent\":false}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "id": "0cad2d71-ca43-4477-9e3b-2a96a16b7675",
+      "name": "Resumo seguro do teste A",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const r = $input.first().json;\nconst status = Number(r.statusCode ?? r.status ?? 0);\nconst h = r.headers ?? {};\nconst raw = r.body ?? r.data ?? '';\nlet body = raw;\nif (typeof raw === 'string') { try { body = JSON.parse(raw); } catch {} }\nlet msg = '';\nif (status >= 400 && body && typeof body === 'object' && !Array.isArray(body)) msg = String(body.Message ?? body.message ?? body.error ?? '');\nif (status >= 400 && typeof body === 'string' && !body.trim().startsWith('<')) msg = body.slice(0, 600);\nmsg = msg.replace(/((?:api[_-]?key|token|secret)[\\s\"'=:\\-]+)[^\\s\"'&,}]+/gi, '$1[OCULTO]').replace(/Bearer\\s+\\S+/gi, 'Bearer [OCULTO]');\nreturn [{json:{caminho:'A - API Key na query',statusCode:status,contentType:h['content-type'] ?? null,retryAfter:h['retry-after'] ?? null,respostaRecebida:status>0,sucessoHttp:status>=200 && status<300,mensagemErro:msg || null,tamanhoResposta:typeof raw==='string'?raw.length:JSON.stringify(raw).length,observacao:'Uma chamada real, Take=1, sem CNPJ, sem datas e sem repeticao. XML e credenciais nao sao incluidos neste resumo.'}}];"
+      }
+    }
+  ],
+  "connections": {
+    "Iniciar teste manual SIEG": {
+      "main": [
+        [
+          {
+            "node": "SIEG - A - BaixarXmls com API Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SIEG - A - BaixarXmls com API Key": {
+      "main": [
+        [
+          {
+            "node": "Resumo seguro do teste A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "active": false,
+  "meta": {
+    "note": "Sanitized export for portfolio: credentials, IDs and personal data replaced with placeholders."
+  }
+}

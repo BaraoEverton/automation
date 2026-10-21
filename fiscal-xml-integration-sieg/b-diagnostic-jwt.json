@@ -1,0 +1,238 @@
+{
+  "name": "Fiscal XML - diagnostic B (JWT)",
+  "nodes": [
+    {
+      "id": "f104e3b9-5b82-4f66-8c1d-69704a6d29dc",
+      "name": "Iniciar teste B - apos credenciais",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "eb6d60a0-cd6f-42ed-91e7-f18817d2d6b0",
+      "name": "BLOQUEADO - faltam ClientId e SecretKey",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "throw new Error('RASCUNHO NAO TESTADO. Configure as credenciais SIEG v1: X-Client-Id e X-Secret-Key no node JWT, e X-API-Key no download. Somente depois remova este bloqueio. Nao enviar segredos no chat.');"
+      }
+    },
+    {
+      "id": "81ab1d9d-9392-4403-b89c-53168bb93293",
+      "name": "SIEG B - Gerar JWT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        500,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sieg.com/api/v1/create-jwt",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpTemplatedCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "2ce5022c-f41f-4176-9fdd-bf493ebe19a0",
+      "name": "Validar retorno JWT sem exibir segredo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const r = $input.first().json;\nif (Number(r.statusCode) < 200 || Number(r.statusCode) >= 300) throw new Error('Geracao JWT nao retornou sucesso HTTP.');\nlet b = r.body ?? r.data;\nfor (let i=0;i<2;i++) { if (typeof b !== 'string') break; try { b=JSON.parse(b); } catch { break; } }\nconst token = typeof b === 'string' ? b.trim() : b?.token ?? b?.Token ?? b?.access_token;\nif (typeof token !== 'string' || !/^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$/.test(token)) throw new Error('Resposta sem JWT reconhecivel. Conferir formato oficial sem compartilhar token.');\nreturn [{json:{token}}];"
+      }
+    },
+    {
+      "id": "d4bb9ba7-eaa6-4e9d-9cbd-5e939937d3dc",
+      "name": "SIEG B - Baixar um XML",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1020,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sieg.com/api/v1/baixar-xmls",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpTemplatedCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "YOUR_VALUE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "{\"TipoXml\":1,\"Take\":1,\"Skip\":0,\"BaixarEventos\":false}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "b83e5191-8e24-4e4d-a69a-fea6e6d22cac",
+      "name": "Resumo seguro B - sem JWT ou XML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const item=$input.first(); const r=item.json; const status=Number(r.statusCode ?? 0); return [{json:{caminho:'B - API v1 JWT e API Key',statusCode:status,sucessoHttp:status>=200&&status<300,contentType:r.headers?.['content-type'] ?? null,arquivoRecebido:!!item.binary?.data,observacao:'O conteudo baixado deve ser conferido antes de declarar a integracao concluida. JWT e XML nao incluidos neste resumo.'}}];"
+      }
+    },
+    {
+      "id": "1b2ce735-c317-4d0c-bc00-b2b257e149f2",
+      "name": "LEIA - credenciais e status do rascunho",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        260
+      ],
+      "parameters": {
+        "content": "## RASCUNHO B - NAO EXECUTADO NO SIEG\n\nFaltam ClientId e SecretKey para gerar JWT. A API Key existente tambem precisa ser cadastrada como X-API-Key no download; nao e uma nova chave obrigatoria.\n\n1. Credencial do JWT: headers X-Client-Id e X-Secret-Key.\n2. Credencial do download: header X-API-Key. O Authorization Bearer usa o JWT do node anterior.\n3. Configurar ambos os nodes antes de remover o bloqueio.\n4. Sem CNPJ, datas, agendamento ou repeticao. Take=1.\n5. Retorno ainda precisa de validacao real. Nao usar na producao.\n\nFontes: portal integracoes.sieg.com, Clientes SIEG, Fluxo Geral, JSON Web Token (JWT) e Baixar XMLs. Corpo de download baseado tambem no codigo publico integrador_notas_fiscais/src/services/siegService.js.",
+        "width": 900,
+        "height": 460,
+        "color": 3
+      }
+    }
+  ],
+  "connections": {
+    "Iniciar teste B - apos credenciais": {
+      "main": [
+        [
+          {
+            "node": "BLOQUEADO - faltam ClientId e SecretKey",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BLOQUEADO - faltam ClientId e SecretKey": {
+      "main": [
+        [
+          {
+            "node": "SIEG B - Gerar JWT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SIEG B - Gerar JWT": {
+      "main": [
+        [
+          {
+            "node": "Validar retorno JWT sem exibir segredo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar retorno JWT sem exibir segredo": {
+      "main": [
+        [
+          {
+            "node": "SIEG B - Baixar um XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SIEG B - Baixar um XML": {
+      "main": [
+        [
+          {
+            "node": "Resumo seguro B - sem JWT ou XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "active": false,
+  "meta": {
+    "note": "Sanitized export for portfolio: credentials, IDs and personal data replaced with placeholders."
+  }
+}

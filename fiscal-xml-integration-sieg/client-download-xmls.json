@@ -1,0 +1,76 @@
+{
+  "name": "Fiscal XML - client download",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -96
+      ],
+      "id": "6665f938-06fc-4a3b-85cd-2fb3d3819de9",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sieg.com/BaixarXmls",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"XmlType\": 1,\n  \"Take\": 1,\n  \"Skip\": 0,\n  \"Downloadevent\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "d89e8d7e-ef33-4919-adb0-307320081c3f",
+      "name": "REQUISIÇÃO SIEG",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "REQUISIÇÃO SIEG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false,
+  "meta": {
+    "note": "Sanitized export for portfolio: credentials, IDs and personal data replaced with placeholders."
+  }
+}

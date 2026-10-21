@@ -1,0 +1,162 @@
+{
+  "name": "Fiscal XML - helper: log diagnostic",
+  "nodes": [
+    {
+      "id": "7b49a84f-4eb5-4267-832e-0db1175d6b74",
+      "name": "Ler diagnostico ja executado",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a1daf70c-b85f-45c7-be6f-088179fe6bf7",
+      "name": "Conferir workflow A",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "workflow",
+        "operation": "get",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "YOUR_RESOURCE_ID",
+          "cachedResultName": "SIEG - Diagnostico A - API Key"
+        }
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "id": "78177b54-d030-4dc7-9430-490ab7a6ed61",
+      "name": "Ler execucao 16041",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "execution",
+        "operation": "get",
+        "executionId": "16041",
+        "options": {
+          "activeWorkflows": true
+        }
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "id": "35c1d86f-ea29-4764-8de8-cfd301d0232c",
+      "name": "Preparar anotacao sem segredos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const w = $('Conferir workflow A').first().json;\nconst e = $input.first().json;\nif (w.id !== 'zzWwjKSIrmaL5qXD' || String(e.workflowId) !== w.id || String(e.id) !== '16041') throw new Error('Identidade da execucao nao corresponde ao teste autorizado.');\nconst runs = e.data?.resultData?.runData ?? {};\nconst last = runs['Resumo seguro do teste A'];\nconst s = last?.[last.length - 1]?.data?.main?.[0]?.[0]?.json;\nconst report = {execucao:String(e.id),workflowId:w.id,statusExecucao:e.status ?? null,inicio:e.startedAt ?? null,fim:e.stoppedAt ?? null,statusHttp:s?.statusCode ?? null,mensagemErro:s?.mensagemErro ?? null,contentType:s?.contentType ?? null,retryAfter:s?.retryAfter ?? null,sucessoHttp:s?.sucessoHttp ?? null,resumoDisponivel:!!s};\nif (!s) report.observacao = 'Resumo ausente. Ultimo node: ' + String(e.data?.resultData?.lastNodeExecuted ?? 'nao informado');\nconst content = '## Resultado real do teste A\n\n' + JSON.stringify(report, null, 2) + '\n\nSomente dados do diagnostico. Nenhuma chave ou nota fiscal incluida. Uma chamada ao SIEG, sem repeticao.';\nconst nodes = w.nodes.filter(n => n.name !== 'RESULTADO REAL - TESTE A');\nnodes.push({id:'7aa5132b-7487-4c49-a4f0-69817d80d6dc',name:'RESULTADO REAL - TESTE A',type:'n8n-nodes-base.stickyNote',typeVersion:1,position:[0,260],parameters:{content,width:720,height:520,color:5}});\nreturn [{json:{workflow:{name:w.name,nodes,connections:w.connections,settings:w.settings ?? {executionOrder:'v1'}}}}];"
+      }
+    },
+    {
+      "id": "d9411185-8fe5-43f6-95d2-bcf8c290ea98",
+      "name": "Anotar somente resultado seguro",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "resource": "workflow",
+        "operation": "update",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "YOUR_RESOURCE_ID",
+          "cachedResultName": "SIEG - Diagnostico A - API Key"
+        },
+        "workflowObject": "={{ JSON.stringify($json.workflow) }}"
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ler diagnostico ja executado": {
+      "main": [
+        [
+          {
+            "node": "Conferir workflow A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conferir workflow A": {
+      "main": [
+        [
+          {
+            "node": "Ler execucao 16041",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler execucao 16041": {
+      "main": [
+        [
+          {
+            "node": "Preparar anotacao sem segredos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar anotacao sem segredos": {
+      "main": [
+        [
+          {
+            "node": "Anotar somente resultado seguro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "active": false,
+  "meta": {
+    "note": "Sanitized export for portfolio: credentials, IDs and personal data replaced with placeholders."
+  }
+}

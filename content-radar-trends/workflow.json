@@ -1,0 +1,540 @@
+{
+  "name": "Content radar - trends and curiosities",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7,11,15,19 * * *"
+            }
+          ]
+        }
+      },
+      "id": "01a8404f-501e-4806-9711-8e8e74659bb8",
+      "name": "4x por dia (7h, 11h, 15h, 19h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "path": "radar-pautas",
+        "options": {}
+      },
+      "id": "ce33afe5-a49a-4677-83c6-217eb207e0dc",
+      "name": "Gatilho externo (webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        592,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lista de fontes (v3): BANCO de sugestões por categoria + RADAR de descobertas.\n// BANCO: categorias da Wikipedia em português (com subcategorias), as páginas mais citadas primeiro.\n//        A cada execução entra outra categoria e outra \"página\" da lista; o filtro de repetidos garante pautas novas.\n// RADAR: notícias de descobertas e curiosidades, e fontes que já vêm \"curadas\".\nconst agora = new Date();\nconst mm = String(agora.getMonth() + 1).padStart(2, '0');\nconst dd = String(agora.getDate()).padStart(2, '0');\nconst diaDoAno = Math.floor((agora - new Date(agora.getFullYear(), 0, 0)) / 864e5);\nconst rodada = diaDoAno * 4 + Math.floor(agora.getHours() / 6); // muda a cada execução (4x ao dia)\n\n// [categoria da Wikipedia, quantas páginas de 20 artigos ela tem que valem a pena]\nconst BANCO = {\n  'Topografia e relevo': [['Serras do Brasil', 5], ['Picos do Brasil', 5], ['Chapadas do Brasil', 5], ['Cavernas do Brasil', 3], ['Planaltos do Brasil', 1], ['Dunas do Brasil', 1]],\n  'Clima': [['Clima do Brasil', 5], ['Desastres naturais no Brasil', 5], ['Enchentes no Brasil', 2], ['Tornados no Brasil', 1], ['Secas no Brasil', 1]],\n  'Geografia': [['Rios do Brasil', 5], ['Hidrografia do Brasil', 5], ['Lagoas do Brasil', 5], ['Arquipélagos do Brasil', 5], ['Ilhas do Brasil', 5]],\n  'Sociologia': [['Lendas do Brasil', 4], ['Quilombos', 5], ['Favelas do Brasil', 5], ['Línguas do Brasil', 5]],\n  'História do Brasil': [['Sítios arqueológicos do Brasil', 4], ['Revoltas no Brasil', 5], ['Brasil Colônia', 2], ['Império do Brasil', 5], ['Escravidão no Brasil', 5]],\n};\nconst POR_PAGINA = 20;\nconst wiki = (busca, offset) =>\n  'https://pt.wikipedia.org/w/api.php?action=query&format=json&formatversion=2' +\n  '&generator=search&gsrnamespace=0&gsrsort=incoming_links_desc' +\n  `&gsrlimit=${POR_PAGINA}&gsroffset=${offset}&gsrsearch=${encodeURIComponent('deepcat:\"' + busca + '\"')}` +\n  '&prop=extracts|pageimages|langlinks&exintro=1&explaintext=1&exsentences=2&exlimit=max' +\n  '&piprop=original|name&lllang=en&lllimit=max';\n\n// Reserva: se a busca da Wikipedia estiver ocupada (\"too busy\"), usa a lista simples da categoria, começando por uma letra que muda a cada rodada.\nconst LETRAS = 'ABCDEFGIJLMNOPRSTV';\nconst reserva = busca =>\n  'https://pt.wikipedia.org/w/api.php?action=query&format=json&formatversion=2' +\n  `&generator=categorymembers&gcmtitle=${encodeURIComponent('Categoria:' + busca)}&gcmtype=page&gcmlimit=${POR_PAGINA}` +\n  `&gcmstartsortkeyprefix=${LETRAS[rodada % LETRAS.length]}` +\n  '&prop=extracts|pageimages|langlinks&exintro=1&explaintext=1&exsentences=2&exlimit=max' +\n  '&piprop=original|name&lllang=en&lllimit=max';\n\nconst fontes = [];\nconst reservas = [];\nfor (const [categoria, buscas] of Object.entries(BANCO)) {\n  const [busca, paginas] = buscas[rodada % buscas.length];\n  const offset = (Math.floor(rodada / buscas.length) % paginas) * POR_PAGINA;\n  fontes.push({ fonte: `Wikipedia: ${busca}`, categoria, idioma: 'pt', tipo: 'banco', exigeBrasil: true, curada: true, url: wiki(busca, offset) });\n  reservas.push({ fonte: `Wikipedia (reserva): ${busca}`, categoria, idioma: 'pt', tipo: 'banco', reserva: true, exigeBrasil: true, curada: true, url: reserva(busca) });\n}\nfontes.push(...reservas); // só são usadas quando a busca principal da categoria falha\n\n// RADAR de descobertas e curiosidades\nconst gn = (q, hl, gl, ceid) =>\n  `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;\nfontes.push(\n  { fonte: 'Descobertas EN', categoria: '', idioma: 'en', tipo: 'radar', exigeBrasil: true, curada: false,\n    url: gn('Brazil (discovered OR discover OR \"new species\" OR fossil OR archaeologists OR mystery OR ancient OR \"never seen\") -\"rare earth\" -deal -election -football', 'en-US', 'US', 'US:en') },\n  { fonte: 'Descobertas PT', categoria: '', idioma: 'pt', tipo: 'radar', exigeBrasil: true, curada: false,\n    url: gn('Brasil (descobrem OR descoberta OR \"nova espécie\" OR fóssil OR arqueólogos OR mistério OR \"nunca antes\") -futebol -eleição', 'pt-BR', 'BR', 'BR:pt-419') },\n  { fonte: 'Descobertas ES', categoria: '', idioma: 'es', tipo: 'radar', exigeBrasil: true, curada: false,\n    url: gn('Brasil (descubren OR hallazgo OR \"nueva especie\" OR fósil OR arqueólogos OR misterio) -fútbol -elecciones', 'es-419', 'AR', 'AR:es-419') },\n  { fonte: 'Sociedade em dados PT', categoria: 'Sociologia', idioma: 'pt', tipo: 'radar', exigeBrasil: true, curada: true,\n    url: gn('brasileiros (IBGE OR censo OR pesquisa) (revela OR curiosidade OR \"pela primeira vez\" OR maioria) -eleição -futebol', 'pt-BR', 'BR', 'BR:pt-419') },\n  { fonte: 'Clima e fenômenos PT', categoria: 'Clima', idioma: 'pt', tipo: 'radar', exigeBrasil: true, curada: false,\n    url: gn('Brasil (fenômeno OR \"recorde de calor\" OR geada OR neve OR ciclone OR tornado OR granizo) -futebol', 'pt-BR', 'BR', 'BR:pt-419') },\n  { fonte: 'Reddit TIL', categoria: '', idioma: 'en', tipo: 'radar', exigeBrasil: true, curada: true,\n    url: 'https://www.reddit.com/r/todayilearned/search.rss?q=brazil&restrict_sr=1&sort=top&t=month' },\n  { fonte: 'Wikipedia: você sabia', categoria: '', idioma: 'en', tipo: 'radar', exigeBrasil: true, curada: true,\n    url: 'https://en.wikipedia.org/w/api.php?action=parse&page=Template:Did_you_know&prop=text&format=json&formatversion=2' },\n  { fonte: 'Wikipedia: hoje na história', categoria: 'História do Brasil', idioma: 'en', tipo: 'radar', exigeBrasil: true, curada: true,\n    url: `https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/${mm}/${dd}` },\n  { fonte: 'NASA Earth', categoria: 'Geografia', idioma: 'en', tipo: 'radar', exigeBrasil: true, curada: true,\n    url: 'https://science.nasa.gov/feed/?science_org=19791,22453' },\n  { fonte: 'Mongabay (natureza)', categoria: 'Geografia', idioma: 'en', tipo: 'radar', exigeBrasil: true, curada: false,\n    url: 'https://news.mongabay.com/feed/' },\n  { fonte: 'Concorrente: Geography By Geoff', categoria: '', idioma: 'en', tipo: 'concorrente', exigeBrasil: true, curada: true,\n    url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC7-Z34pbJ0ZAOJRmUCEz0Cg' },\n);\n\nreturn fontes.map(f => ({ json: f }));\n"
+      },
+      "id": "db1472e1-27de-4f39-b9a8-7a874a918e7b",
+      "name": "Lista de fontes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "radar-pautas/1.0 (user@example.com)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 20000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "9c0aa9c6-3b6e-4142-b856-6634d732ecb5",
+      "name": "Baixar fontes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        1152
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// v3: monta o BANCO de sugestões por categoria (Wikipedia) e o RADAR de descobertas (notícias curadas).\nconst fontes = $('Lista de fontes').all().map(i => i.json);\nconst respostas = $input.all();\nconst memoria = $getWorkflowStaticData('global'); // links já vistos entre execuções (só vale com o workflow publicado)\nmemoria.vistos = memoria.vistos || {};\nconst agora = new Date().toISOString();\n\nconst limpar = s => (s || '')\n  .replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g, '$1')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')\n  .replace(/&quot;/g, '\"').replace(/&#39;|&apos;|&#039;/g, \"'\").replace(/&nbsp;/g, ' ')\n  .replace(/\\s+/g, ' ').trim();\nconst tag = (bloco, nome) => {\n  const m = bloco.match(new RegExp(`<${nome}[^>]*>([\\\\s\\\\S]*?)</${nome}>`, 'i'));\n  return m ? limpar(m[1]) : '';\n};\n\nconst BRASIL = /brasil|brazil|brasileir|brasile|amaz[oô]n|rio de janeiro|s[aã]o paulo|bras[ií]lia|pantanal|tiet[eê]|igua[cç]u|nordeste|manaus|cerrado|caatinga|mata atl[aâ]ntica|atlantic forest|fernando de noronha|len[cç][oó]is|\\bacre\\b|alagoas|amap[aá]|bahia|cear[aá]|esp[ií]rito santo|goi[aá]s|maranh[aã]o|mato grosso|minas gerais|\\bpar[aá]\\b|para[ií]ba|paran[aá]|pernambuco|piau[ií]|rio grande do (norte|sul)|rond[oô]nia|roraima|santa catarina|sergipe|tocantins|tupi|guaran/i;\nconst DESCOBERTA = /descob|discover|cientist|scientist|cient[ií]fic|pesquisador|researcher|investigador|esp[eé]cie|species|f[oó]ss|fossil|arque[oó]log|archaeolog|antig|ancient|mist[eé]r|myster|\\braro\\b|\\brare\\b|in[eé]dit|hallazgo|estranh|weird|strange|incomum|unusual|curios|segredo|secret|enigma/i;\nconst GEO = /\\brio\\b|river|\\br[ií]o\\b|ilha|island|isla|serra|montanh|mountain|floresta|forest|caverna|cave|cachoeira|waterfall|catarata|lago|lake|duna|dune|vulc|volcan|fronteira|border|mapa|\\bmap\\b|sat[eé]lite|satellite|meteor/i;\nconst SUPER = /maior|menor|largest|biggest|smallest|[uú]nic[oa]|unique|\\bonly\\b|oldest|mais antig|deepest|highest|mais alt|longest|mais long/i;\nconst PORQUE = /por que|why|por qu[eé]/i;\n// notícia comum que não vira pauta: política, economia, esporte, crime, eventos\nconst NEGATIVOS = /elei[cç]|election|presiden|lula|bolsonaro|senado|senate|congresso|congress|\\bstf\\b|minist[eé]rio|ministry|governo|government|tarif|soja|soybean|mercado|market|bolsa|stock|d[oó]lar|juros|infla[cç]|\\bpib\\b|\\bgdp\\b|empresa|company|a[cç][oõ]es|investi|copa do mundo|world cup|sele[cç][aã]o|advers[aá]ri|futebol|football|soccer|escala[cç]|oitavas|campeonato|\\bgol\\b|bbb|novela|reality|celebridad|hor[oó]scopo|avenida brasil|\\bmort[eo]s?\\b|assassin|pol[ií]cia|police|\\bpms?\\b|tiro|balead|pres[oa]s?\\b|pris[aã]o|crime|tr[aá]fico|shooting|killed|festival|premia[cç]|award|semin[aá]rio|webinar|show\\b|rare earth|terras raras|tierras raras|\\bdeal\\b|acordo|contrato|drug|medicament|vacina|doen[cç]a|disease|democracia|democracy|sindicat|ranking|influentes|f[uú]tbol|entrenador|t[eé]cnico|jugador|player|coach|hinchas|libertadores|sudamericana|plantel|fichaje|refuerzo|famos[oa]s?\\b|filh[ao] de|selecci[oó]n|convoca|\\bdt\\b|boca juniors|river plate|arruabarrena|gin[aá]stica|mundial de|ballet|bal[eé]\\b|espet[aá]culo|turn[eê]|exporta|tonelad|cadena|cadeia de lojas|loja/i;\n// páginas da Wikipedia que não viram pauta: listas, pessoas, cidades, clubes, órgãos, obras\n// (usa (?:^|[\\s,]) em vez de \\b porque \\b não funciona antes de \"é\" no JavaScript)\nconst NAO_BANCO_TITULO = /^lista|desambigua|clube|club\\b|futebol|foot ?ball|esporte clube|atl[eé]tico|partido|ag[eê]ncia|minist[eé]rio|universidade|faculdade|instituto|banco |est[aá]dio|telenovela|^rede |^\\d{3,4} no brasil|^\\d{3,4}$|\\((telenovela|filme|livro|[aá]lbum|can[cç][aã]o|banda)|^edif[ií]cio|^samb[oó]dromo|^escola de samba|^aeroporto|^hospital|^shopping|^ponte |cidade universit/i;\nconst NAO_BANCO_RESUMO = /(?:^|[\\s,])(é|foi|são|era|foram) (um|uma|o|a|os|as) ([a-zà-ú]+ )?(munic[ií]pio|distrito|empresa|concession[aá]ria|est[aá]dio|clube|rodovia|autarquia|[oó]rg[aã]o|programa|edif[ií]cio|shopping|telenovela|novela|miniss[eé]rie|s[eé]rie|filme|romance|livro|[aá]lbum|can[cç][aã]o|emissora|rede|organiza[cç][aã]o|institui[cç][aã]o|funda[cç][aã]o|departamento|faculdade|universidade|escola|time|equipe|associa[cç][aã]o|companhia|jornal|peri[oó]dico|revista|banda|grupo musical|esp[eé]cie|g[eê]nero|vila|povoado)(?![a-zà-ú])/i;\nconst PESSOA = /(?:^|[\\s,])(foi|é|era) (um|uma|o|a) ([a-zà-ú]+ )?(pol[ií]tic|militar|escritor|cantor|ator|atriz|jogador|empres[aá]ri|advogad|m[eé]dic|padre|bispo|historiador|soci[oó]log|ge[oó]graf|jornalista|poeta|compositor|pintor|sertanista|explorador|engenheir|economista|professor|imperador|rei\\b|rainha|pr[ií]ncipe|princesa|nobre|pesquisador|cientista|ativista|arquitet|fot[oó]graf|antrop[oó]log|climatolog|meteorolog|f[ií]sic|qu[ií]mic|bi[oó]log|bot[aâ]nic|naturalista|navegador|cors[aá]rio|pirata|governador|prefeito|deputad|senador|bandeirante|l[ií]der|guerreir|monarca|estadista|diplomata|magistrad|juiz|religios|mission[aá]ri|jesu[ií]ta|dan[cç]arin|cirandeir|artista|m[uú]sic|cineasta|escultor|fil[oó]sof|ensa[ií]sta|romancista|dramaturgo|sacerdote|frade|santo|beato)/i;\nconst NASCIMENTO = /\\((?:[A-ZÀ-Ú][^(),]*),\\s*(?:ca?\\.\\s*)?(?:\\d{1,2}º? de [a-zç]+ de )?\\d{3,4}/; // \"(Cidade, 2 de dezembro de 1825\" = biografia\n\n// classifica notícias do radar quando a fonte não define a categoria\nconst CATEGORIAS = [\n  ['Topografia e relevo', /serra|montanh|mountain|pico\\b|peak|planalto|plateau|chapada|c[aâ]nion|canyon|relevo|altitude|escarpa|dun[ae]s?|dune/i],\n  ['Clima', /clima|climate|chuva|rain|seca|drought|calor|heat|frio|cold|neve|snow|geada|frost|ciclone|cyclone|tornado|tempestade|storm|el ni[nñ]o|temperatura/i],\n  ['História do Brasil', /hist[oó]ri|history|imp[eé]rio|empire|col[oô]ni|colonial|escrav|slaver|revolt|guerra|war\\b|independ|s[eé]culo|century|\\b1[5-9]\\d\\d\\b|arque[oó]log|archaeolog|ancient|antig/i],\n  ['Sociologia', /popula[cç]|population|censo|census|migra|imigra|immigra|favela|quilomb|ind[ií]gen|indigenous|desigual|inequal|idioma|language|sotaque|accent|cultura|culture|religi|sociedad|society|cidade|city/i],\n  ['Geografia', /\\brio\\b|river|ilha|island|fronteira|border|bacia|basin|litoral|coast|lago|lake|lagoa|amaz[oô]n|cerrado|pantanal|caatinga|floresta|forest|mapa|\\bmap\\b|sat[eé]lite|satellite/i],\n];\nconst classificar = t => { for (const [c, r] of CATEGORIAS) if (r.test(t)) return c; return 'Descobertas e curiosidades'; };\n\nconst MAX_BANCO_POR_CATEGORIA = 2; // por execução: 5 categorias x 2 = 10 sugestões novas no banco (40 por dia)\nconst MAX_RADAR_POR_FONTE = 4;\n\nconst saida = [];\nconst bancoOk = {}; // categorias cuja busca principal respondeu (aí a reserva é ignorada)\nconst titulosDaRodada = new Set(); // a mesma notícia em vários veículos entra uma vez só\nrespostas.forEach((resp, i) => {\n  const f = fontes[i] || {};\n  if (f.reserva && bancoOk[f.categoria]) return;\n  const d = resp.json.data;\n  const corpo = typeof d === 'string' ? d : (d ? JSON.stringify(d) : '');\n  if (!corpo) return; // fonte fora do ar: segue com as outras\n\n  let itens = [];\n  if (corpo.trim().startsWith('{')) {\n    let j;\n    try { j = JSON.parse(corpo); } catch (e) { return; }\n    if (j.query && Array.isArray(j.query.pages)) { // Wikipedia: busca do banco\n      if (f.tipo === 'banco' && !f.reserva && j.query.pages.length) bancoOk[f.categoria] = true;\n      itens = j.query.pages\n        .sort((a, b) => (a.index || 0) - (b.index || 0))\n        .map(p => {\n          const en = (p.langlinks || []).find(l => l.lang === 'en');\n          const tituloEn = en ? (en.title || en['*'] || '') : '';\n          return {\n            titulo: p.title,\n            link: 'https://pt.wikipedia.org/wiki/' + encodeURIComponent(p.title.replace(/ /g, '_')),\n            resumo: (p.extract || '').slice(0, 400),\n            imagem: (p.original && p.original.source) || '',\n            arquivoImagem: p.pageimage ? 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(p.pageimage) : '',\n            emIngles: tituloEn ? 'https://en.wikipedia.org/wiki/' + encodeURIComponent(tituloEn.replace(/ /g, '_')) : 'não existe (lacuna)',\n            publicado: '',\n          };\n        });\n    } else if (j.parse && j.parse.text) { // Wikipedia \"Did you know\"\n      const html = typeof j.parse.text === 'string' ? j.parse.text : (j.parse.text['*'] || '');\n      itens = (html.match(/<li[\\s>][\\s\\S]*?<\\/li>/gi) || []).map(li => {\n        const m = li.match(/href=\"(\\/wiki\\/[^\"#]+)\"/i);\n        return { titulo: limpar(li), link: m ? 'https://en.wikipedia.org' + m[1] : '', resumo: '', imagem: '', publicado: agora.slice(0, 10) };\n      }).filter(x => x.titulo.startsWith('...'));\n    } else if (Array.isArray(j.events)) { // Wikipedia \"hoje na história\"\n      itens = j.events.map(e => ({\n        titulo: `${e.year}: ${e.text}`,\n        link: (e.pages && e.pages[0] && e.pages[0].content_urls && e.pages[0].content_urls.desktop.page) || '',\n        resumo: '', imagem: '', publicado: String(e.year),\n      }));\n    }\n  } else { // RSS (<item>) ou Atom (<entry>)\n    const blocos = corpo.match(/<item[\\s>][\\s\\S]*?<\\/item>/gi) || corpo.match(/<entry[\\s>][\\s\\S]*?<\\/entry>/gi) || [];\n    const googleNews = /news\\.google\\./.test(f.url || '');\n    itens = blocos.map(b => {\n      let link = tag(b, 'link');\n      if (!link) { const m = b.match(/<link[^>]*href=\"([^\"]+)\"/i); link = m ? m[1] : ''; }\n      let titulo = tag(b, 'title');\n      let veiculo = '';\n      if (googleNews) { // no Google News a descrição só repete o título + nome do veículo (\"CNN Brasil\" enganava o filtro)\n        const m = titulo.match(/^(.*\\S)\\s+-\\s+([^-]+)$/);\n        if (m) { titulo = m[1]; veiculo = m[2].trim(); }\n      }\n      return { titulo, veiculo, link, resumo: googleNews ? '' : tag(b, 'description').slice(0, 400), imagem: '',\n        publicado: tag(b, 'pubDate') || tag(b, 'published') || tag(b, 'updated') };\n    });\n  }\n\n  let aceitos = 0;\n  const limite = f.tipo === 'banco' ? MAX_BANCO_POR_CATEGORIA : MAX_RADAR_POR_FONTE;\n  for (const it of itens.slice(0, 50)) {\n    if (aceitos >= limite) break;\n    if (!it.link || !it.titulo) continue;\n    const texto = `${it.titulo} ${it.resumo || ''}`;\n    const falaDoBrasil = BRASIL.test(texto);\n    if (f.exigeBrasil && !falaDoBrasil) continue;\n    let pontos;\n    if (f.tipo === 'banco') {\n      const resumo = it.resumo || '';\n      if (NAO_BANCO_TITULO.test(it.titulo) || NASCIMENTO.test(resumo) || PESSOA.test(resumo)\n        || NAO_BANCO_RESUMO.test(resumo.split('. ')[0])) continue;\n      pontos = 3 + (SUPER.test(texto) ? 1 : 0) + (DESCOBERTA.test(texto) ? 1 : 0) + (PORQUE.test(texto) ? 1 : 0) + (it.imagem ? 1 : 0);\n    } else {\n      if (f.tipo !== 'concorrente' && NEGATIVOS.test(it.titulo)) continue;\n      pontos = (DESCOBERTA.test(texto) ? 2 : 0) + (GEO.test(texto) ? 1 : 0) + (SUPER.test(texto) ? 1 : 0)\n        + (PORQUE.test(texto) ? 1 : 0) + (falaDoBrasil ? 1 : 0) + (f.curada ? 2 : 0);\n      if (f.tipo !== 'concorrente' && pontos < 3) continue; // notícia precisa de descoberta + Brasil\n    }\n    const chaveTitulo = it.titulo.toLowerCase().replace(/[^a-z0-9à-ú]/g, '').slice(0, 60);\n    if (memoria.vistos[it.link] || titulosDaRodada.has(chaveTitulo)) continue;\n    titulosDaRodada.add(chaveTitulo);\n    memoria.vistos[it.link] = agora;\n    aceitos++;\n    saida.push({\n      data_coleta: agora,\n      categoria: f.categoria || classificar(texto),\n      tipo: f.tipo, fonte: it.veiculo ? `${f.fonte} (${it.veiculo})` : f.fonte, idioma: f.idioma, pontuacao: pontos,\n      titulo: it.titulo.slice(0, 250), resumo: it.resumo || '', link: it.link, em_ingles: it.emIngles || '',\n      imagem: it.imagem || '', publicado: it.publicado || '', status: 'nova', fato_checado: '', fonte_primaria: '',\n      licenca_imagem: it.arquivoImagem ? 'conferir: ' + it.arquivoImagem : '',\n    });\n  }\n});\n\n// mantém só os 8.000 links mais recentes na memória\nconst chaves = Object.keys(memoria.vistos);\nif (chaves.length > 8000) {\n  chaves.sort((a, b) => (memoria.vistos[a] < memoria.vistos[b] ? -1 : 1))\n    .slice(0, chaves.length - 8000)\n    .forEach(k => delete memoria.vistos[k]);\n}\n\n// banco primeiro, depois radar; dentro de cada um, maior pontuação primeiro\nsaida.sort((a, b) => (a.tipo === 'banco' ? 0 : 1) - (b.tipo === 'banco' ? 0 : 1) || b.pontuacao - a.pontuacao);\nreturn saida.slice(0, 40).map(j => ({ json: j }));\n"
+      },
+      "id": "953f3fc4-2b21-4233-87e4-c9d0b8b54ecf",
+      "name": "Ler, filtrar e pontuar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_RESOURCE_ID",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_RESOURCE_ID",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "data_coleta",
+              "displayName": "data_coleta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fonte",
+              "displayName": "fonte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "idioma",
+              "displayName": "idioma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "pontuacao",
+              "displayName": "pontuacao",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "potencial_viral",
+              "displayName": "potencial_viral",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "titulo",
+              "displayName": "titulo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resumo",
+              "displayName": "resumo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "em_ingles",
+              "displayName": "em_ingles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "imagem",
+              "displayName": "imagem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "publicado",
+              "displayName": "publicado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fato_checado",
+              "displayName": "fato_checado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fonte_primaria",
+              "displayName": "fonte_primaria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "licenca_imagem",
+              "displayName": "licenca_imagem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "d18cc0fa-9368-44fc-a520-ceeeafe630cf",
+      "name": "Salvar no banco de pautas",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2656,
+        1152
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "content": "## Radar de pautas (v3)\n1. **Lista de fontes**: banco de sugestões por categoria (Wikipedia: topografia, clima, geografia, sociologia, história) + radar de descobertas. Se a busca da Wikipedia estiver ocupada, entra a lista simples da categoria (reserva).\n2. **Ler, filtrar e pontuar**: tira pessoas, cidades, listas e notícias de política/esporte/crime/negócios. Entram 2 temas por categoria e até 4 por fonte do radar.\n3. **Preparar / Buscar / Juntar enriquecimento**: sugere a fonte primária (links oficiais e científicos do artigo) e preenche licença e autor da imagem.\n4. **Calcular potencial viral**: nota de 0 a 10 por regras (lacuna em inglês, superlativo, mistério, descoberta, imagem, fonte). A planilha sai ordenada pela nota.\n5. **Salvar no banco de pautas**: aba **Pautas**.\n6. **Montar alerta**: junta as pautas com nota 5 ou mais numa mensagem. Falta ligar o envio (WhatsApp da BPM ou e-mail).\nA memória de repetidos só vale com o workflow **publicado**. User-Agent: user@example.com",
+        "height": 520,
+        "width": 500
+      },
+      "id": "7ec9b0fa-4d22-463a-955d-b10c98f3c1b6",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        832,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepara as consultas de enriquecimento das sugestões do banco (Wikipedia):\n// 1) links externos do artigo, para sugerir a fonte primária;\n// 2) licença e autor da imagem principal (uma consulta para até 50 imagens).\nconst linhas = $input.all().map(i => i.json);\nconst API = 'https://pt.wikipedia.org/w/api.php?action=query&format=json&formatversion=2';\nconst pedidos = [];\nconst arquivos = [];\n\nlinhas.forEach((l, i) => {\n  if (l.tipo !== 'banco') return;\n  const titulo = decodeURIComponent((l.link || '').split('/wiki/')[1] || '').replace(/_/g, ' ');\n  if (titulo) pedidos.push({ tipo: 'fontes', linha: i, url: `${API}&prop=extlinks&ellimit=max&titles=${encodeURIComponent(titulo)}` });\n  const m = (l.licenca_imagem || '').match(/File:(.+)$/);\n  if (m) arquivos.push('File:' + decodeURIComponent(m[1]));\n});\n\nfor (let k = 0; k < arquivos.length; k += 50) {\n  pedidos.push({ tipo: 'licenca', linha: -1,\n    url: `${API}&prop=imageinfo&iiprop=extmetadata|url&iiextmetadatafilter=LicenseShortName|Artist|UsageTerms` +\n      `&titles=${encodeURIComponent(arquivos.slice(k, k + 50).join('|'))}` });\n}\n\n// sem sugestões do banco: uma consulta leve só para as linhas do radar seguirem até a planilha\nif (!pedidos.length) pedidos.push({ tipo: 'nada', linha: -1, url: `${API}&meta=siteinfo` });\n\nreturn pedidos.map(p => ({ json: p }));\n"
+      },
+      "id": "fddcfba1-b316-41a8-a467-d856de9082b1",
+      "name": "Preparar enriquecimento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "radar-pautas/1.0 (user@example.com)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 20000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 300
+            }
+          }
+        }
+      },
+      "id": "9b8ddeef-3210-465a-a831-e83fccdd5ed4",
+      "name": "Buscar licença e fontes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1888,
+        1152
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta o enriquecimento nas linhas: fonte primária sugerida e licença/autor da imagem.\nconst linhas = $('Ler, filtrar e pontuar').all().map(i => ({ ...i.json }));\nconst pedidos = $('Preparar enriquecimento').all().map(i => i.json);\nconst respostas = $input.all();\n\n// sites oficiais, universidades e periódicos científicos\nconst CONFIAVEL = /\\.gov\\.br|\\.leg\\.br|\\.jus\\.br|\\.mil\\.br|\\.edu\\.br|\\.ufrj\\.br|\\.usp\\.br|unicamp\\.br|unesp\\.br|ufmg\\.br|ufpe\\.br|ufba\\.br|ibge|icmbio|inpe\\.br|embrapa|cemaden|inmet|iphan|fiocruz|cprm|scielo|doi\\.org|jstor\\.org|nature\\.com|science\\.org|sciencedirect|springer|wiley\\.com|cambridge\\.org|academic\\.oup|tandfonline|plos|nasa\\.gov|noaa\\.gov|usgs\\.gov|unesco\\.org|wmo\\.int|bndigital|arquivonacional|biodiversitylibrary|museu/i;\n// links de busca que a Wikipedia coloca em todo artigo (\"Procurar fontes\") não contam\nconst EXCLUIR = /[?&](q|query|search|busca|term)=|wikipedialibrary|periodicos\\.capes|google\\.|worldcat|viaf\\.org/i;\nconst texto = s => String(s || '').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '\"')\n  .replace(/&#0?39;/g, \"'\").replace(/&nbsp;/g, ' ').replace(/\\s+/g, ' ').trim();\nconst chave = s => String(s || '').replace(/^[^:]+:/, '').replace(/_/g, ' ').trim().toLowerCase();\nconst lerJson = r => {\n  const d = r && r.json && r.json.data;\n  try { return typeof d === 'string' ? JSON.parse(d) : (d || {}); } catch (e) { return {}; }\n};\n\nconst licencas = {};\npedidos.forEach((p, k) => {\n  const j = lerJson(respostas[k]);\n  const paginas = (j.query && j.query.pages) || [];\n\n  if (p.tipo === 'fontes' && linhas[p.linha]) {\n    if (!j.query) return; // consulta falhou: deixa em branco\n    const links = ((paginas[0] && paginas[0].extlinks) || []).map(e => e.url || e['*'] || '');\n    const hosts = new Set();\n    const boas = [];\n    for (const bruto of links) {\n      const u = bruto.startsWith('//') ? 'https:' + bruto : bruto;\n      if (!/^https?:/.test(u) || EXCLUIR.test(u) || !CONFIAVEL.test(u)) continue;\n      const host = (u.match(/^https?:\\/\\/(?:web\\.archive\\.org\\/web\\/[^/]+\\/)?(?:https?:\\/\\/)?([^/:]+)/i) || [])[1] || u;\n      const partes = host.toLowerCase().split('.');\n      const dominio = partes.slice(/\\.(gov|edu|org|com|leg|jus|mil|net)\\.br$/i.test(host) ? -3 : -2).join('.');\n      if (hosts.has(dominio)) continue;\n      hosts.add(dominio);\n      boas.push(u);\n      if (boas.length === 2) break;\n    }\n    linhas[p.linha].fonte_primaria = boas.length ? boas.join(' | ') : 'nenhuma fonte oficial no artigo';\n  }\n\n  if (p.tipo === 'licenca') {\n    for (const pg of paginas) {\n      const info = pg.imageinfo && pg.imageinfo[0];\n      if (!info) continue;\n      const m = info.extmetadata || {};\n      const lic = texto(m.LicenseShortName && m.LicenseShortName.value) || texto(m.UsageTerms && m.UsageTerms.value) || 'licença não informada';\n      const autor = texto(m.Artist && m.Artist.value).slice(0, 120);\n      licencas[chave(pg.title)] = `${lic}${autor ? ' | autor: ' + autor : ''} | ${info.descriptionurl || ''}`;\n    }\n  }\n});\n\nfor (const l of linhas) {\n  const m = (l.licenca_imagem || '').match(/File:(.+)$/);\n  if (m && licencas[chave(decodeURIComponent(m[1]))]) l.licenca_imagem = licencas[chave(decodeURIComponent(m[1]))];\n}\n\nreturn linhas.map(l => ({ json: l }));\n"
+      },
+      "id": "267bf25e-5109-4141-8530-6783ca103b2e",
+      "name": "Juntar enriquecimento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Potencial viral (0 a 10) de cada pauta, por regras simples (sem IA). A partir de 5 = vale alerta.\n// Lógica: o que costuma prender em Shorts de curiosidade = algo que o público de fora não conhece\n// + superlativo + mistério/perigo + descoberta + imagem pronta + fonte para checar.\nconst SUPER = /maior|menor|(?:^|[\\s(])[uú]nic[oa]s?(?![a-zà-ú])|mais antig|mais alt|mais long|mais profund|mais quente|mais fri|recorde|nunca|primeir[oa]s? (d|n)[oa]s?\\b|largest|biggest|smallest|\\bonly\\b|oldest|highest|longest|deepest|hottest|record|\\bmost\\b|\\bfirst\\b|never/i;\nconst MISTERIO = /mist[eé]ri|enigma|estranh|bizarr|lenda|assombr|maldi[cç]|proibid|perig|mortal|venen|serpente|cobra|jararaca|tubar|monstro|gigante|desaparec|abandonad|fantasma|segredo|escondid|perdid|isolad|myster|weird|strange|bizarre|legend|haunt|curse|forbidden|danger|deadly|venom|snake|giant|vanish|abandoned|ghost|secret|hidden|lost|isolated/i;\nconst DESCOBERTA = /descob|discover|nova esp[eé]cie|new species|f[oó]ssil|fossil|arque[oó]log|archaeolog|ancient|pr[eé]-hist|dinossaur|dinosaur/i;\nconst PORQUE = /por que|why|por qu[eé]/i;\nconst CURADA = /Reddit TIL|você sabia|NASA Earth/;\n\nconst linhas = $input.all().map(i => ({ ...i.json }));\nfor (const l of linhas) {\n  const t = `${l.titulo || ''} ${l.resumo || ''}`;\n  let s = 0;\n  if (String(l.em_ingles || '').includes('lacuna')) s += 3; // ninguém contou isso em inglês ainda\n  if (SUPER.test(t)) s += 2;\n  if (MISTERIO.test(t)) s += 2;\n  if (DESCOBERTA.test(t)) s += 2;\n  if (PORQUE.test(t)) s += 1;\n  if (l.imagem) s += 1;\n  if (CURADA.test(l.fonte || '')) s += 2; // já foi escolhida por pessoas como curiosidade\n  if (l.fonte_primaria && !String(l.fonte_primaria).startsWith('nenhuma')) s += 1; // dá para checar\n  l.potencial_viral = Math.min(10, s);\n}\n\n// maior potencial primeiro\nlinhas.sort((a, b) => b.potencial_viral - a.potencial_viral || b.pontuacao - a.pontuacao);\nreturn linhas.map(l => ({ json: l }));\n"
+      },
+      "id": "4d1fe727-18ab-47c6-8e13-088224b662c9",
+      "name": "Calcular potencial viral",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta as pautas com potencial viral alto numa mensagem só (pronta para WhatsApp ou e-mail).\n// Sem nenhuma pauta acima do corte, não sai nada e nada é enviado.\nconst CORTE = 5;\nconst top = $input.all().map(i => i.json).filter(l => l.potencial_viral >= CORTE);\nif (!top.length) return [];\n\nconst itens = top.slice(0, 5).map((l, k) =>\n  `${k + 1}. *${l.titulo}* (${l.potencial_viral}/10)\\n` +\n  `   ${l.categoria}${String(l.em_ingles).includes('lacuna') ? ' · sem artigo em inglês' : ''}\\n` +\n  `   ${l.link}`);\nconst mensagem = `🔥 Radar de pautas: ${top.length} com potencial viral\\n\\n${itens.join('\\n\\n')}` +\n  (top.length > 5 ? `\\n\\n+${top.length - 5} na planilha` : '');\n\nreturn [{ json: { mensagem, total: top.length } }];\n"
+      },
+      "id": "adf2e81b-10e7-43cf-88f4-f22b3cd3f4f7",
+      "name": "Montar alerta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2656,
+        1376
+      ],
+      "notes": "Falta conectar o envio (WhatsApp da BPM ou e-mail).",
+      "notesInFlow": true
+    }
+  ],
+  "connections": {
+    "4x por dia (7h, 11h, 15h, 19h)": {
+      "main": [
+        [
+          {
+            "node": "Lista de fontes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gatilho externo (webhook)": {
+      "main": [
+        [
+          {
+            "node": "Lista de fontes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lista de fontes": {
+      "main": [
+        [
+          {
+            "node": "Baixar fontes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar fontes": {
+      "main": [
+        [
+          {
+            "node": "Ler, filtrar e pontuar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler, filtrar e pontuar": {
+      "main": [
+        [
+          {
+            "node": "Preparar enriquecimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar enriquecimento": {
+      "main": [
+        [
+          {
+            "node": "Buscar licença e fontes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar licença e fontes": {
+      "main": [
+        [
+          {
+            "node": "Juntar enriquecimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juntar enriquecimento": {
+      "main": [
+        [
+          {
+            "node": "Calcular potencial viral",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular potencial viral": {
+      "main": [
+        [
+          {
+            "node": "Salvar no banco de pautas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Montar alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "America/Sao_Paulo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "active": false,
+  "meta": {
+    "note": "Sanitized export for portfolio: credentials, IDs and personal data replaced with placeholders."
+  }
+}

@@ -1,0 +1,390 @@
+{
+  "name": "Lead capture - Airtable + WhatsApp alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cliente-saude-booking",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "24858e1f-7d14-4f1a-a77f-6988d6d1c011",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "93aadb06-eee8-488a-95ed-11fe74bf5acb",
+              "name": "token",
+              "value": "={{ $now.setZone('America/Sao_Paulo').toFormat('ddLLyyyyHHmmssmm') }}",
+              "type": "string"
+            },
+            {
+              "id": "3257d286-060b-41ad-858e-a7809e210774",
+              "name": "data",
+              "value": "={{ $now.setZone('America/Sao_Paulo').toFormat('dd/LL/yyyy') }}",
+              "type": "string"
+            },
+            {
+              "id": "351c1062-1636-4828-824a-aace39007f81",
+              "name": "hora",
+              "value": "={{ $now.setZone('America/Sao_Paulo').toFormat('HH:mm:ss') }}",
+              "type": "string"
+            },
+            {
+              "id": "33ec2ecc-ac58-495d-89cc-7be38a44a09e",
+              "name": "form-name",
+              "value": "={{ $json.body[\"form-name\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "dfcc8851-00bc-4f7a-966b-8468a37e0065",
+              "name": "name",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "d6930894-9340-4b0e-bfe3-ad40d3382516",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "2a60ace2-e8db-4568-9be1-2c27734a5ae3",
+              "name": "phone",
+              "value": "={{ $json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "0553c548-0776-45cb-9e16-5c531ef8a75f",
+              "name": "service",
+              "value": "={{ $json.body.service }}",
+              "type": "string"
+            },
+            {
+              "id": "943d64b6-815d-4fc1-af31-412ebea5649f",
+              "name": "execution_mode",
+              "value": "={{ $json.executionMode }}",
+              "type": "string"
+            },
+            {
+              "id": "4f435d0c-0903-4f56-8fd4-75426f7e67c4",
+              "name": "origem",
+              "value": "={{ $json.webhookUrl }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "2ae9a132-b236-45cb-a943-99e455d8abdd",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "YOUR_RESOURCE_ID",
+          "mode": "list",
+          "cachedResultName": "Cliente Saúde"
+        },
+        "table": {
+          "__rl": true,
+          "value": "YOUR_RESOURCE_ID",
+          "mode": "list",
+          "cachedResultName": "upmedrio-leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "token": "={{ $json.token }}",
+            "data": "={{ $json.data }}",
+            "hora": "={{ $json.hora }}",
+            "form-name": "={{ $json[\"form-name\"] }}",
+            "name": "={{ $json.name }}",
+            "email": "={{ $json.email }}",
+            "service": "={{ $json.service }}",
+            "execution_mode": "={{ $json.execution_mode }}",
+            "origem": "={{ $json.origem }}",
+            "phone": "={{ $json.phone.replace(/\\D/g, '') }}"
+          },
+          "matchingColumns": [
+            "phone"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "token",
+              "displayName": "token",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "hora",
+              "displayName": "hora",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "form-name",
+              "displayName": "form-name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "service",
+              "displayName": "service",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "execution_mode",
+              "displayName": "execution_mode",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "origem",
+              "displayName": "origem",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "1bb8e788-8fc8-4354-9f41-3176fba5ba10",
+      "name": "Create or update a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "",
+          "name": "configure-in-your-n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0af1f87-224b-4ebe-831d-826e5965ebf4",
+              "name": "reminder",
+              "value": "=🚨 NOVO LEAD - UP RIO MED\n\n👤 Nome: {{ $json.fields.name }}\n📧 Email: {{ $json.fields.email }}\n📱 Telefone: {{ $json.fields.phone }}\n\n💉 Serviço: {{ $json.fields.service }}\n\n🕒 Data: {{ $json.fields.data }} {{ $json.fields.hora }}\n\n🔗 Origem: Site",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        0
+      ],
+      "id": "359e5f2c-6247-439f-95cd-9362f48350ef",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://evolution.example.com/message/sendText/YOUR_INSTANCE",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "YOUR_VALUE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "=5500000000000"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.reminder }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e206b48f-2724-4c6b-9fbf-5331345e43db",
+      "name": "Agent_response13",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Create or update a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or update a record": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Agent_response13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "active": false,
+  "meta": {
+    "note": "Sanitized export for portfolio: credentials, IDs and personal data replaced with placeholders."
+  }
+}
